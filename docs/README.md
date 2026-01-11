@@ -22,11 +22,15 @@ rearc/
 │       ├── data_sync/
 │       └── analytics/
 ├── tests/                  # Test files
+├── scripts/                # Utility scripts
+│   ├── test_comprehensive.sh
+│   ├── test_e2e.sh
+│   └── clean_and_redeploy.sh
 ├── docs/                   # Documentation
-│   └── ARCHITECTURE.md
+│   ├── ARCHITECTURE.md
+│   └── README.md
 ├── requirements.txt        # Python dependencies
-├── pyproject.toml          # Python project configuration
-└── PLAN.md                 # Implementation plan
+└── pyproject.toml          # Python project configuration
 ```
 
 ## Quick Start
@@ -80,8 +84,8 @@ See [infrastructure/README.md](infrastructure/README.md) for Terraform deploymen
 
 ## Documentation
 
-- [Implementation Plan](PLAN.md)
 - [Architecture Overview](docs/ARCHITECTURE.md)
+- [Infrastructure Deployment](infrastructure/README.md)
 
 ## Requirements
 

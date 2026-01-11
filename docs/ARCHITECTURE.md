@@ -93,7 +93,8 @@
 
 - IAM roles with least privilege
 - S3 bucket encryption (AES256)
-- Public access blocked
+- S3 data bucket: Public read access (required for submission)
+- S3 lambda_packages bucket: Private (for Lambda deployment packages)
 - VPC endpoints (optional, for enhanced security)
 
 ## Monitoring
@@ -129,6 +130,10 @@ rearc/
 │       ├── data_sync/
 │       └── analytics/
 ├── tests/                  # Test files
+├── scripts/                # Utility scripts
+│   ├── test_comprehensive.sh
+│   ├── test_e2e.sh
+│   └── clean_and_redeploy.sh
 └── docs/                   # Documentation
 ```
 
