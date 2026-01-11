@@ -26,13 +26,34 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "data_bucket" {
   }
 }
 
+# Public access block - set to false if you want to share the bucket publicly
 resource "aws_s3_bucket_public_access_block" "data_bucket" {
   bucket = aws_s3_bucket.data_bucket.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  block_public_acls       = false  # Allow public ACLs
+  block_public_policy     = false  # Allow public bucket policies
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+# Bucket policy to allow public read access
+resource "aws_s3_bucket_policy" "public_read" {
+  bucket = aws_s3_bucket.data_bucket.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.data_bucket.arn}/*"
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.data_bucket]
 }
 
 # S3 Bucket for Lambda deployment packages

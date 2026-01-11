@@ -55,15 +55,37 @@ def lambda_handler(event, context):
     
     results = {}
     
+    # Get SQS records
+    records = event.get('Records', [])
+    
+    if not records:
+        logger.warning("No records found in event")
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'message': 'No records to process'})
+        }
+    
     # Process each SQS record
-    for record in event.get('Records', []):
+    for record in records:
         try:
             # Parse SQS message body (contains S3 event)
+            # S3 sends notifications directly in the body, not wrapped in 'Message'
             body = json.loads(record['body'])
-            s3_event = json.loads(body.get('Message', '{}'))
+            
+            # Check if body has 'Message' field (SNS format) or 'Records' field (direct S3 format)
+            if 'Message' in body:
+                # SNS format: body contains Message which has the S3 event
+                s3_event = json.loads(body['Message'])
+                s3_records = s3_event.get('Records', [])
+            elif 'Records' in body:
+                # Direct S3 format: body contains Records directly
+                s3_records = body.get('Records', [])
+            else:
+                logger.warning(f"Unexpected message format: {list(body.keys())}")
+                continue
             
             # Extract S3 object information
-            for s3_record in s3_event.get('Records', []):
+            for s3_record in s3_records:
                 s3_object = s3_record['s3']
                 object_key = s3_object['object']['key']
                 object_bucket = s3_object['bucket']['name']
