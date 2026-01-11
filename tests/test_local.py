@@ -12,7 +12,13 @@ from io import StringIO
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root / 'src'))
 
-from rearc.data_sync.bls import fetch_url_content, calculate_md5
+from rearc.data_sync.bls import (
+    fetch_url_content, 
+    calculate_md5,
+    parse_directory_listing,
+    discover_files_and_directories,
+    BLS_BASE_URL
+)
 from rearc.data_sync.population import fetch_population_data
 from rearc.analytics.queries import (
     query1_population_stats,
@@ -139,6 +145,48 @@ def test_analytics_queries():
     return True
 
 
+def test_bls_directory_discovery():
+    """Test BLS directory listing parsing and discovery."""
+    logger.info("=" * 60)
+    logger.info("TEST 5: BLS Directory Discovery")
+    logger.info("=" * 60)
+    
+    try:
+        # Test HTML parsing
+        test_html = """
+        <html><body><table>
+        <tr><td><a href="pr.data.0.Current">pr.data.0.Current</a></td></tr>
+        <tr><td><a href="pr.series">pr.series</a></td></tr>
+        <tr><td><a href="data/">data/</a></td></tr>
+        </table></body></html>
+        """
+        
+        files, directories = parse_directory_listing(test_html)
+        
+        assert 'pr.data.0.Current' in files
+        assert 'pr.series' in files
+        assert 'data' in directories
+        logger.info("✓ HTML parsing works correctly")
+        
+        # Test actual directory discovery (if network available)
+        try:
+            files, dirs = discover_files_and_directories(BLS_BASE_URL, '')
+            if files or dirs:
+                logger.info(f"✓ Discovered {len(files)} files and {len(dirs)} directories")
+                logger.info(f"  Sample files: {files[:3]}")
+                logger.info(f"  Sample dirs: {dirs[:3]}")
+            else:
+                logger.warning("⚠ No files/directories discovered (may be network issue)")
+        except Exception as e:
+            logger.warning(f"⚠ Could not test actual discovery: {e}")
+            logger.info("  (This is OK - network may be unavailable)")
+        
+        return True
+    except Exception as e:
+        logger.error(f"✗ Directory discovery test failed: {e}")
+        return False
+
+
 def test_with_local_s3_mock():
     """Test with mocked S3 using moto (optional)."""
     try:
@@ -198,6 +246,9 @@ def main():
     # Test 4: S3 mock (optional)
     results['s3_mock'] = test_with_local_s3_mock()
     
+    # Test 5: BLS directory discovery (new)
+    results['bls_discovery'] = test_bls_directory_discovery()
+    
     # Summary
     logger.info("\n" + "=" * 60)
     logger.info("TEST SUMMARY")
@@ -206,7 +257,9 @@ def main():
         status = "✓ PASS" if result else "✗ FAIL" if result is False else "⊘ SKIP"
         logger.info(f"{test_name:20} {status}")
     
-    return all(r for r in results.values() if r is not False)
+    # Return True if all non-skipped tests passed
+    non_skipped = [r for r in results.values() if r is not None]
+    return all(non_skipped) if non_skipped else False
 
 
 if __name__ == '__main__':
