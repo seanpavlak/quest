@@ -15,10 +15,15 @@ resource "aws_sqs_queue_policy" "s3_notifications" {
       {
         Effect = "Allow"
         Principal = {
-          AWS = aws_iam_role.s3_notifications.arn
+          Service = "s3.amazonaws.com"
         }
         Action   = "sqs:SendMessage"
         Resource = aws_sqs_queue.s3_notifications.arn
+        Condition = {
+          ArnLike = {
+            "aws:SourceArn" = "${aws_s3_bucket.data_bucket.arn}"
+          }
+        }
       }
     ]
   })

@@ -55,16 +55,25 @@ resource "aws_lambda_function" "data_sync" {
   tags = var.tags
 }
 
-# Analytics Lambda Function
+# Upload Analytics Lambda package to S3 (required for large packages >70MB)
+resource "aws_s3_object" "analytics_lambda_package" {
+  bucket = aws_s3_bucket.lambda_packages.id
+  key    = "analytics-${data.archive_file.analytics_zip.output_base64sha256}.zip"
+  source = data.archive_file.analytics_zip.output_path
+  etag   = data.archive_file.analytics_zip.output_base64sha256
+}
+
+# Analytics Lambda Function (using S3 for large package)
 resource "aws_lambda_function" "analytics" {
-  filename         = data.archive_file.analytics_zip.output_path
-  function_name    = "${var.project_name}-analytics"
-  role            = aws_iam_role.analytics_lambda.arn
-  handler         = "lambda_function.lambda_handler"
+  s3_bucket     = aws_s3_bucket.lambda_packages.id
+  s3_key        = aws_s3_object.analytics_lambda_package.key
+  function_name = "${var.project_name}-analytics"
+  role          = aws_iam_role.analytics_lambda.arn
+  handler       = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.analytics_zip.output_base64sha256
-  runtime         = "python3.11"
-  timeout         = var.lambda_timeout
-  memory_size     = var.lambda_memory
+  runtime       = "python3.11"
+  timeout       = var.lambda_timeout
+  memory_size   = var.lambda_memory
 
   environment {
     variables = {
@@ -74,7 +83,8 @@ resource "aws_lambda_function" "analytics" {
 
   depends_on = [
     aws_cloudwatch_log_group.analytics,
-    aws_iam_role_policy.analytics_lambda
+    aws_iam_role_policy.analytics_lambda,
+    aws_s3_object.analytics_lambda_package
   ]
 
   tags = var.tags

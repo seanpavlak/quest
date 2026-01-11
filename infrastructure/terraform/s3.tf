@@ -35,3 +35,27 @@ resource "aws_s3_bucket_public_access_block" "data_bucket" {
   restrict_public_buckets = true
 }
 
+# S3 Bucket for Lambda deployment packages
+resource "aws_s3_bucket" "lambda_packages" {
+  bucket = "${var.project_name}-lambda-packages-${random_id.bucket_suffix.hex}"
+
+  tags = var.tags
+}
+
+resource "aws_s3_bucket_versioning" "lambda_packages" {
+  bucket = aws_s3_bucket.lambda_packages.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "lambda_packages" {
+  bucket = aws_s3_bucket.lambda_packages.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
