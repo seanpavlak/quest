@@ -51,6 +51,7 @@ infrastructure/lambda/**/botocore/
 infrastructure/lambda/**/requests/
 infrastructure/lambda/**/pandas/
 infrastructure/lambda/**/numpy/
+infrastructure/lambda/**/numpy.libs/
 infrastructure/lambda/**/rearc/
 infrastructure/lambda/**/certifi/
 infrastructure/lambda/**/charset_normalizer/
