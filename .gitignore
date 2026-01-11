@@ -1,0 +1,94 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+dist/
+build/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars.backup
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Lambda deployment packages
+*.zip
+infrastructure/terraform/*.zip
+
+# Lambda dependencies (installed packages)
+# These are installed via `pip install -r requirements.txt -t .` during build
+# We only want to track the source files (lambda_function.py, requirements.txt), not the installed dependencies
+
+# Ignore all Python packages and dependencies installed in lambda directories
+infrastructure/lambda/**/__pycache__/
+infrastructure/lambda/**/*.dist-info/
+infrastructure/lambda/**/*.egg-info/
+infrastructure/lambda/**/*.pyc
+infrastructure/lambda/**/*.pyo
+infrastructure/lambda/**/*.so
+infrastructure/lambda/**/bin/
+infrastructure/lambda/**/boto3/
+infrastructure/lambda/**/botocore/
+infrastructure/lambda/**/requests/
+infrastructure/lambda/**/pandas/
+infrastructure/lambda/**/numpy/
+infrastructure/lambda/**/rearc/
+infrastructure/lambda/**/certifi/
+infrastructure/lambda/**/charset_normalizer/
+infrastructure/lambda/**/dateutil/
+infrastructure/lambda/**/idna/
+infrastructure/lambda/**/jmespath/
+infrastructure/lambda/**/s3transfer/
+infrastructure/lambda/**/urllib3/
+infrastructure/lambda/**/pytz/
+infrastructure/lambda/**/tzdata/
+infrastructure/lambda/**/six.py
+infrastructure/lambda/**/tzlocal/
+
+# AWS
+.aws/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local test data
+data/local/

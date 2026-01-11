@@ -1,0 +1,19 @@
+# Copy this file to terraform.tfvars and update with your values
+# terraform.tfvars should be added to .gitignore
+
+project_name = "rearc-data-pipeline"
+aws_region   = "us-east-1"
+
+bls_source_url = "https://download.bls.gov/pub/time.series/pr/"
+datausa_api_url = "https://honolulu-api.datausa.io/tesseract/data.jsonrecords?cube=acs_yg_total_population_1&drilldowns=Year%2CNation&locale=en&measures=Population"
+
+lambda_timeout = 300
+lambda_memory  = 512
+
+schedule_expression = "cron(0 2 * * ? *)"  # Daily at 2 AM UTC
+
+tags = {
+  Project     = "RearcDataQuest"
+  Environment = "dev"
+}
+

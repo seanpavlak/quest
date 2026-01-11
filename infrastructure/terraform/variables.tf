@@ -1,0 +1,51 @@
+variable "project_name" {
+  description = "Name prefix for all resources"
+  type        = string
+  default     = "rearc-data-pipeline"
+}
+
+variable "aws_region" {
+  description = "AWS region for resources"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "bls_source_url" {
+  description = "BLS data source URL"
+  type        = string
+  default     = "https://download.bls.gov/pub/time.series/pr/"
+}
+
+variable "datausa_api_url" {
+  description = "DataUSA API URL"
+  type        = string
+  default     = "https://honolulu-api.datausa.io/tesseract/data.jsonrecords?cube=acs_yg_total_population_1&drilldowns=Year%2CNation&locale=en&measures=Population"
+}
+
+variable "lambda_timeout" {
+  description = "Lambda function timeout in seconds"
+  type        = number
+  default     = 300
+}
+
+variable "lambda_memory" {
+  description = "Lambda function memory in MB"
+  type        = number
+  default     = 512
+}
+
+variable "schedule_expression" {
+  description = "EventBridge schedule expression for data sync Lambda"
+  type        = string
+  default     = "cron(0 2 * * ? *)"  # Daily at 2 AM UTC
+}
+
+variable "tags" {
+  description = "Tags to apply to all resources"
+  type        = map(string)
+  default = {
+    Project     = "RearcDataQuest"
+    Environment = "dev"
+  }
+}
+
