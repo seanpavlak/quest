@@ -4,7 +4,10 @@
 
 set -e
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+cd "$REPO_ROOT"
 
 echo "=========================================="
 echo "  Clean Deployment Script"
@@ -52,7 +55,7 @@ pip install --platform manylinux2014_x86_64 --target . --implementation cp --pyt
 
 echo "Copying rearc package..."
 mkdir -p rearc
-cp -r ../../../../src/rearc/* rearc/
+cp -r "$REPO_ROOT/src/rearc"/* rearc/
 echo "✓ Analytics Lambda dependencies installed"
 
 echo ""

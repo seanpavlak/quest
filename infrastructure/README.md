@@ -41,13 +41,33 @@ infrastructure/
    ```
 
 3. Install Python dependencies for Lambda functions:
+
+   **Data Sync Lambda** (standard installation):
    ```bash
    cd lambda/data_sync
    pip install -r requirements.txt -t .
-   
-   cd ../analytics
-   pip install -r requirements.txt -t .
+   mkdir -p rearc
+   cp -r ../../../../src/rearc/* rearc/
    ```
+
+   **Analytics Lambda** (Linux-compatible installation required):
+   
+   The Analytics Lambda uses numpy and pandas which require Linux-compatible binaries. Use:
+   
+   ```bash
+   cd lambda/analytics
+   
+   # Install Linux-compatible dependencies
+   pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir boto3
+   pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir "numpy<2.0"
+   pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir pandas
+   
+   # Copy rearc package
+   mkdir -p rearc
+   cp -r ../../../../src/rearc/* rearc/
+   ```
+   
+   **Note**: The Analytics Lambda package is >70MB, so Terraform uploads it to S3 first (`lambda_packages` bucket), then references it from there.
 
 ## Deployment
 
@@ -106,10 +126,30 @@ To destroy all resources:
 terraform destroy
 ```
 
-## Notes
+## Important Notes
 
-- Lambda functions need to be packaged with dependencies
-- S3 event notifications require proper IAM permissions
-- SQS visibility timeout should be >= Lambda timeout
-- Lambda functions import from the `rearc` package, so you'll need to bundle the `src/rearc` directory in the Lambda deployment package
+- **Lambda Dependencies**: 
+  - Data Sync Lambda uses standard `pip install`
+  - Analytics Lambda requires Linux-compatible packages (installed via `--platform manylinux2014_x86_64`)
+  - Both Lambda functions need the `rearc` package copied from `src/rearc/`
+
+- **Package Size**:
+  - Analytics Lambda package is >70MB, so it's uploaded to S3 (`lambda_packages` bucket) first
+  - Terraform handles this automatically via `aws_s3_object.analytics_lambda_package`
+
+- **S3 Buckets**:
+  - `data_bucket`: Publicly readable, stores BLS and population data
+  - `lambda_packages`: Private bucket for storing large Lambda deployment packages
+
+- **S3 Event Notifications**:
+  - Configured to send messages to SQS when `population_data_*.json` files are created
+  - Analytics Lambda is triggered via SQS event source mapping
+
+- **IAM Permissions**:
+  - Lambda roles have least-privilege access
+  - SQS queue policy allows S3 service to send messages
+
+- **Cost Management**:
+  - Budget should be created manually in AWS Console (requires special IAM permissions)
+  - Go to AWS Billing Console > Budgets to set up cost alerts
 
