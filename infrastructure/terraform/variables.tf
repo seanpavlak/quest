@@ -49,9 +49,3 @@ variable "tags" {
   }
 }
 
-variable "budget_alert_email" {
-  description = "Email address for budget alerts"
-  type        = string
-  default     = ""  # Set this in terraform.tfvars
-}
-
