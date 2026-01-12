@@ -25,10 +25,14 @@ rearc/
 ├── scripts/                # Utility scripts
 │   ├── test_comprehensive.sh
 │   ├── test_e2e.sh
-│   └── clean_and_redeploy.sh
+│   ├── test_local_simple.py
+│   ├── clean_and_redeploy.sh
+│   └── refresh_outputs.sh  # Refresh infrastructure outputs
 ├── docs/                   # Documentation
 │   ├── ARCHITECTURE.md
+│   ├── DEPLOYMENT_GUIDE.md # Complete deployment guide
 │   └── README.md
+├── outputs.json            # Infrastructure outputs (S3 bucket, Lambda ARNs, etc.)
 ├── requirements.txt        # Python dependencies
 └── pyproject.toml          # Python project configuration
 ```
@@ -85,6 +89,7 @@ See [infrastructure/README.md](infrastructure/README.md) for Terraform deploymen
 ## Documentation
 
 - [Architecture Overview](docs/ARCHITECTURE.md)
+- [Complete Deployment Guide](docs/DEPLOYMENT_GUIDE.md) - Comprehensive guide with S3 bucket links, architecture, code details, and Terraform deployment instructions
 - [Infrastructure Deployment](infrastructure/README.md)
 
 ## Requirements
