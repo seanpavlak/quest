@@ -29,7 +29,6 @@ rearc/
 │   ├── clean_and_redeploy.sh
 │   └── refresh_outputs.sh  # Refresh infrastructure outputs
 ├── docs/                   # Documentation
-│   ├── ARCHITECTURE.md
 │   ├── DEPLOYMENT_GUIDE.md # Complete deployment guide
 │   └── README.md
 ├── config/                 # Configuration files
@@ -91,8 +90,7 @@ See [infrastructure/README.md](infrastructure/README.md) for Terraform deploymen
 
 ## Documentation
 
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [Complete Deployment Guide](docs/DEPLOYMENT_GUIDE.md) - Comprehensive guide with S3 bucket links, architecture, code details, and Terraform deployment instructions
+- [Complete Deployment Guide](docs/DEPLOYMENT_GUIDE.md) - Comprehensive guide with architecture, S3 bucket links, code details, and Terraform deployment instructions
 - [Infrastructure Deployment](infrastructure/README.md)
 
 ## Requirements

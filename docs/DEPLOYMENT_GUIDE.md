@@ -115,7 +115,7 @@ aws s3 ls s3://rearc-data-pipeline-data-08041c62/ --recursive
    ├─► Part 1: BLS Data Sync
    │   │
    │   └─► Syncs all files from BLS website to S3
-   │       - Dynamic file discovery (recursive directory traversal)
+   │       - Dynamic file discovery (iterative directory traversal)
    │       - Change detection (MD5 comparison)
    │       - Handles additions, updates, deletions
    │

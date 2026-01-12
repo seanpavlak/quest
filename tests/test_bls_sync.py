@@ -17,7 +17,7 @@ from rearc.data_sync.bls import (
     parse_directory_listing,
     discover_files_and_directories,
     sync_file,
-    sync_directory_recursive,
+    sync_directory_iterative,
     sync_bls_data,
     calculate_md5,
     get_s3_object_etag,
@@ -270,12 +270,12 @@ class TestFileSync:
 
 
 class TestRecursiveSync:
-    """Test recursive directory synchronization."""
+    """Test iterative directory synchronization."""
     
     @patch('rearc.data_sync.bls.discover_files_and_directories')
     @patch('rearc.data_sync.bls.sync_file')
-    def test_sync_directory_recursive(self, mock_sync_file, mock_discover):
-        """Test recursive directory sync."""
+    def test_sync_directory_iterative(self, mock_sync_file, mock_discover):
+        """Test iterative directory sync."""
         s3_client = Mock()
         
         # Mock discovery: root has files and a subdirectory
@@ -289,7 +289,7 @@ class TestRecursiveSync:
         mock_discover.side_effect = discover_side_effect
         mock_sync_file.return_value = True
         
-        discovered = sync_directory_recursive(s3_client, 'bucket', 'https://example.com/', '')
+        discovered = sync_directory_iterative(s3_client, 'bucket', 'https://example.com/')
         
         # Should discover all files
         assert 'file1.txt' in discovered
@@ -303,16 +303,16 @@ class TestRecursiveSync:
 class TestFullSync:
     """Test full BLS sync with mocked S3."""
     
-    @patch('rearc.data_sync.bls.sync_directory_recursive')
+    @patch('rearc.data_sync.bls.sync_directory_iterative')
     @patch('rearc.data_sync.bls.list_s3_objects')
     @patch('rearc.data_sync.bls.delete_file_from_s3')
-    def test_sync_bls_data_full(self, mock_delete, mock_list, mock_sync_recursive):
+    def test_sync_bls_data_full(self, mock_delete, mock_list, mock_sync_iterative):
         """Test full BLS sync including deletion handling."""
         s3_client = Mock()
         
         # Mock discovered files
         discovered_files = {'file1.txt', 'file2.txt', 'pr.data.0.Current'}
-        mock_sync_recursive.return_value = discovered_files
+        mock_sync_iterative.return_value = discovered_files
         
         # Mock existing S3 files (includes a file that should be deleted)
         existing_files = {'file1.txt', 'file2.txt', 'old_file.txt', 'pr.data.0.Current'}
@@ -327,15 +327,15 @@ class TestFullSync:
         # Should delete old_file.txt (exists in S3 but not in source)
         mock_delete.assert_called_once_with(s3_client, 'test-bucket', 'old_file.txt')
     
-    @patch('rearc.data_sync.bls.sync_directory_recursive')
+    @patch('rearc.data_sync.bls.sync_directory_iterative')
     @patch('rearc.data_sync.bls.list_s3_objects')
     @patch('rearc.data_sync.bls.delete_file_from_s3')
-    def test_sync_bls_data_no_deletions(self, mock_delete, mock_list, mock_sync_recursive):
+    def test_sync_bls_data_no_deletions(self, mock_delete, mock_list, mock_sync_iterative):
         """Test sync when no files need deletion."""
         s3_client = Mock()
         
         discovered_files = {'file1.txt', 'file2.txt'}
-        mock_sync_recursive.return_value = discovered_files
+        mock_sync_iterative.return_value = discovered_files
         
         existing_files = {'file1.txt', 'file2.txt'}
         mock_list.return_value = existing_files
