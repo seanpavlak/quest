@@ -2,7 +2,7 @@
 BLS Data Sync Module
 
 Syncs data from the Bureau of Labor Statistics (BLS) dataset to S3.
-Handles iterative directory traversal, change detection, and file management.
+Handles recursive directory traversal, change detection, and file management.
 """
 
 import boto3
@@ -11,7 +11,6 @@ import hashlib
 import re
 from urllib.parse import urljoin
 from typing import Set, List, Tuple
-from collections import deque
 import logging
 
 logger = logging.getLogger(__name__)
@@ -223,70 +222,69 @@ def sync_file(s3_client, bucket_name: str, source_url: str, s3_key: str) -> bool
         return upload_file_to_s3(s3_client, bucket_name, s3_key, content)
 
 
-def sync_directory_iterative(
+def sync_directory_recursive(
     s3_client,
     bucket_name: str,
-    base_url: str
+    base_url: str,
+    current_path: str = '',
+    discovered_files: Set[str] = None
 ) -> Set[str]:
     """
-    Iteratively sync a directory and all subdirectories using a queue.
-    
-    Uses a breadth-first traversal approach with a queue to avoid recursion
-    and potential stack overflow issues with deep directory structures.
+    Recursively sync a directory and all subdirectories.
     
     Args:
         s3_client: Boto3 S3 client
         bucket_name: S3 bucket name
         base_url: Base URL for BLS directory
+        current_path: Current relative path from base
+        discovered_files: Set to track all discovered files
         
     Returns:
         Set of all discovered file paths (S3 keys)
     """
-    discovered_files = set()
-    directories_to_process = deque([''])  # Start with root directory (empty path)
+    if discovered_files is None:
+        discovered_files = set()
     
-    logger.info("Starting iterative directory sync")
+    # Discover files and directories in current path
+    files, directories = discover_files_and_directories(base_url, current_path)
     
-    while directories_to_process:
-        current_path = directories_to_process.popleft()
+    # Sync all files in current directory
+    for file_name in files:
+        # Construct S3 key (preserve directory structure)
+        if current_path:
+            s3_key = f"{current_path}/{file_name}"
+        else:
+            s3_key = file_name
         
-        logger.debug(f"Processing directory: {current_path if current_path else 'root'}")
+        # Construct source URL
+        if current_path:
+            source_url = urljoin(base_url, f"{current_path}/{file_name}")
+        else:
+            source_url = urljoin(base_url, file_name)
         
-        # Discover files and directories in current path
-        files, directories = discover_files_and_directories(base_url, current_path)
-        
-        # Sync all files in current directory
-        for file_name in files:
-            # Construct S3 key (preserve directory structure)
-            if current_path:
-                s3_key = f"{current_path}/{file_name}"
-            else:
-                s3_key = file_name
-            
-            # Construct source URL
-            if current_path:
-                source_url = urljoin(base_url, f"{current_path}/{file_name}")
-            else:
-                source_url = urljoin(base_url, file_name)
-            
-            # Sync the file
-            if sync_file(s3_client, bucket_name, source_url, s3_key):
-                discovered_files.add(s3_key)
-            else:
-                logger.warning(f"Failed to sync {s3_key}")
-        
-        # Add subdirectories to queue for processing
-        for dir_name in directories:
-            # Construct new path
-            if current_path:
-                new_path = f"{current_path}/{dir_name}"
-            else:
-                new_path = dir_name
-            
-            logger.info(f"Queuing subdirectory: {new_path}")
-            directories_to_process.append(new_path)
+        # Sync the file
+        if sync_file(s3_client, bucket_name, source_url, s3_key):
+            discovered_files.add(s3_key)
+        else:
+            logger.warning(f"Failed to sync {s3_key}")
     
-    logger.info(f"Completed iterative sync. Processed {len(discovered_files)} files")
+    # Recursively process subdirectories
+    for dir_name in directories:
+        # Construct new path
+        if current_path:
+            new_path = f"{current_path}/{dir_name}"
+        else:
+            new_path = dir_name
+        
+        logger.info(f"Entering subdirectory: {new_path}")
+        sync_directory_recursive(
+            s3_client,
+            bucket_name,
+            base_url,
+            new_path,
+            discovered_files
+        )
+    
     return discovered_files
 
 
@@ -294,7 +292,7 @@ def sync_bls_data(bucket_name: str, region: str = 'us-east-1'):
     """
     Main function to sync BLS data to S3.
     
-    Performs full iterative directory traversal using a queue, discovers all files dynamically,
+    Performs full recursive directory traversal, discovers all files dynamically,
     syncs new/changed files, and deletes files from S3 that no longer exist in source.
     
     Args:
@@ -306,9 +304,9 @@ def sync_bls_data(bucket_name: str, region: str = 'us-east-1'):
     logger.info(f"Starting BLS data sync to bucket: {bucket_name}")
     logger.info(f"Source URL: {BLS_BASE_URL}")
     
-    # Step 1: Discover and sync all files iteratively
+    # Step 1: Discover and sync all files recursively
     logger.info("Discovering and syncing files from source...")
-    discovered_files = sync_directory_iterative(s3_client, bucket_name, BLS_BASE_URL)
+    discovered_files = sync_directory_recursive(s3_client, bucket_name, BLS_BASE_URL)
     
     logger.info(f"Discovered {len(discovered_files)} files from source")
     
