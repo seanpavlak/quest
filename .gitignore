@@ -30,10 +30,14 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 outputs_raw.json
+config/outputs.json
 
 # Lambda deployment packages
 *.zip
 infrastructure/terraform/*.zip
+
+# Lambda layers (build artifacts)
+infrastructure/lambda/layers/
 
 # Lambda dependencies (installed packages)
 # These are installed via `pip install -r requirements.txt -t .` during build

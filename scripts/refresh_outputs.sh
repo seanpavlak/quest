@@ -9,10 +9,14 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TERRAFORM_DIR="$PROJECT_ROOT/infrastructure/terraform"
-OUTPUTS_FILE="$PROJECT_ROOT/outputs.json"
+CONFIG_DIR="$PROJECT_ROOT/config"
+OUTPUTS_FILE="$CONFIG_DIR/outputs.json"
 
 echo "Refreshing outputs.json from Terraform..."
 echo ""
+
+# Ensure config directory exists
+mkdir -p "$CONFIG_DIR"
 
 # Check if terraform directory exists
 if [ ! -d "$TERRAFORM_DIR" ]; then

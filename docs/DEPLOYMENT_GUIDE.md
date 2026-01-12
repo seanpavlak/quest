@@ -30,7 +30,7 @@ This comprehensive guide provides detailed information about the architecture, c
 
 ### Infrastructure Outputs File
 
-All infrastructure outputs are captured in `outputs.json` at the repo root for easy access. This file contains:
+All infrastructure outputs are captured in `config/outputs.json` for easy access. This file contains:
 - S3 bucket name, ARN, and URLs
 - Lambda function names and ARNs
 - SQS queue URLs and ARNs
@@ -39,16 +39,16 @@ All infrastructure outputs are captured in `outputs.json` at the repo root for e
 
 **View the outputs file:**
 ```bash
-cat outputs.json
+cat config/outputs.json
 ```
 
 **Extract specific values:**
 ```bash
 # Get bucket name
-cat outputs.json | python3 -c "import sys, json; print(json.load(sys.stdin)['s3_bucket_name'])"
+cat config/outputs.json | python3 -c "import sys, json; print(json.load(sys.stdin)['s3_bucket_name'])"
 
 # Get bucket URL
-cat outputs.json | python3 -c "import sys, json; print(json.load(sys.stdin)['s3_bucket_url'])"
+cat config/outputs.json | python3 -c "import sys, json; print(json.load(sys.stdin)['s3_bucket_url'])"
 ```
 
 ### Getting/Refreshing the S3 Bucket Link
@@ -82,8 +82,8 @@ https://<bucket-name>.s3.<region>.amazonaws.com/<object-key>
 
 **To list all objects in the bucket:**
 ```bash
-# Get bucket name from outputs.json
-BUCKET_NAME=$(cat outputs.json | python3 -c "import sys, json; print(json.load(sys.stdin)['s3_bucket_name'])")
+# Get bucket name from config/outputs.json
+BUCKET_NAME=$(cat config/outputs.json | python3 -c "import sys, json; print(json.load(sys.stdin)['s3_bucket_name'])")
 
 # List all objects
 aws s3 ls s3://$BUCKET_NAME/ --recursive
@@ -92,7 +92,7 @@ aws s3 ls s3://$BUCKET_NAME/ --recursive
 aws s3 ls s3://rearc-data-pipeline-data-08041c62/ --recursive
 ```
 
-**Note:** The bucket name includes a random suffix to ensure uniqueness. After deployment, the outputs file is automatically updated with the current bucket name and all other infrastructure outputs.
+**Note:** The bucket name includes a random suffix to ensure uniqueness. After deployment, the outputs file (`config/outputs.json`) is automatically updated with the current bucket name and all other infrastructure outputs.
 
 ---
 
@@ -580,13 +580,13 @@ After successful deployment, capture the outputs:
 
 **Option 1: Use the refresh script (recommended)**
 ```bash
-# From the repo root, refresh outputs.json
+# From the repo root, refresh config/outputs.json
 ./scripts/refresh_outputs.sh
 ```
 
 This script:
 - Extracts all Terraform outputs
-- Creates/updates `outputs.json` at the repo root
+- Creates/updates `config/outputs.json`
 - Includes S3 bucket URLs and example URLs
 - Makes outputs easily accessible across the repository
 
@@ -606,15 +606,15 @@ terraform output -json > outputs_raw.json
 terraform output -raw s3_bucket_name
 ```
 
-**Accessing outputs from `outputs.json`:**
+**Accessing outputs from `config/outputs.json`:**
 ```bash
 # View the outputs file
-cat outputs.json
+cat config/outputs.json
 
 # Get specific values using Python/jq
-cat outputs.json | python3 -c "import sys, json; print(json.load(sys.stdin)['s3_bucket_name'])"
-cat outputs.json | jq -r '.s3_bucket_name'
-cat outputs.json | jq -r '.s3_bucket_url'
+cat config/outputs.json | python3 -c "import sys, json; print(json.load(sys.stdin)['s3_bucket_name'])"
+cat config/outputs.json | jq -r '.s3_bucket_name'
+cat config/outputs.json | jq -r '.s3_bucket_url'
 ```
 
 **Important Outputs:**
@@ -627,7 +627,7 @@ cat outputs.json | jq -r '.s3_bucket_url'
 - CloudWatch log group names
 - `example_urls`: Example URLs for accessing data
 
-**Note:** The `outputs.json` file is created at the repo root and includes all infrastructure outputs in a simplified format with additional metadata like bucket URLs.
+**Note:** The `config/outputs.json` file includes all infrastructure outputs in a simplified format with additional metadata like bucket URLs.
 
 ### Step 7: Verify Deployment
 

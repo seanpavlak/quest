@@ -32,7 +32,10 @@ rearc/
 │   ├── ARCHITECTURE.md
 │   ├── DEPLOYMENT_GUIDE.md # Complete deployment guide
 │   └── README.md
-├── outputs.json            # Infrastructure outputs (S3 bucket, Lambda ARNs, etc.)
+├── config/                 # Configuration files
+│   └── outputs.json        # Infrastructure outputs (S3 bucket, Lambda ARNs, etc.)
+├── data/                   # Data files (local test data)
+│   └── local/              # Local test data (in .gitignore)
 ├── requirements.txt        # Python dependencies
 └── pyproject.toml          # Python project configuration
 ```
