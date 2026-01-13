@@ -272,9 +272,10 @@ class TestFileSync:
 class TestRecursiveSync:
     """Test iterative directory synchronization."""
     
+    @patch('rearc.data_sync.bls.requests.head')
     @patch('rearc.data_sync.bls.discover_files_and_directories')
     @patch('rearc.data_sync.bls.sync_file')
-    def test_sync_directory_iterative(self, mock_sync_file, mock_discover):
+    def test_sync_directory_iterative(self, mock_sync_file, mock_discover, mock_head):
         """Test iterative directory sync."""
         s3_client = Mock()
         
@@ -288,6 +289,11 @@ class TestRecursiveSync:
         
         mock_discover.side_effect = discover_side_effect
         mock_sync_file.return_value = True
+        
+        # Mock HEAD request for directory validation (returns 200 for valid directories)
+        mock_head_response = Mock()
+        mock_head_response.status_code = 200
+        mock_head.return_value = mock_head_response
         
         discovered = sync_directory_iterative(s3_client, 'bucket', 'https://example.com/')
         

@@ -178,7 +178,11 @@ def discover_files_and_directories(base_url: str, current_path: str = '') -> Tup
         response.raise_for_status()
         html_content = response.text
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching directory listing for {url}: {e}")
+        # Log as warning for 404s (directory doesn't exist) vs error for other issues
+        if hasattr(e, 'response') and e.response is not None and e.response.status_code == 404:
+            logger.warning(f"Directory not found (404): {url} - skipping")
+        else:
+            logger.error(f"Error fetching directory listing for {url}: {e}")
         return [], []
     
     # Parse HTML directory listing

@@ -179,7 +179,11 @@ def discover_files_and_directories(base_url: str, current_path: str = '') -> Tup
         response.raise_for_status()
         html_content = response.text
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching directory listing for {url}: {e}")
+        # Log as warning for 404s (directory doesn't exist) vs error for other issues
+        if hasattr(e, 'response') and e.response is not None and e.response.status_code == 404:
+            logger.warning(f"Directory not found (404): {url} - skipping")
+        else:
+            logger.error(f"Error fetching directory listing for {url}: {e}")
         return [], []
     
     # Parse HTML directory listing
@@ -282,6 +286,23 @@ def sync_directory_iterative(
                 new_path = f"{current_path}/{dir_name}"
             else:
                 new_path = dir_name
+            
+            # Validate directory exists before queuing (prevents 404 errors)
+            # Quick HEAD request to check if directory is accessible
+            test_url = urljoin(base_url, new_path)
+            if not test_url.endswith('/'):
+                test_url += '/'
+            
+            try:
+                # Use HEAD request to check existence without downloading
+                validation_response = requests.head(test_url, headers={'User-Agent': USER_AGENT}, timeout=5, allow_redirects=True)
+                if validation_response.status_code != 200:
+                    logger.warning(f"Skipping invalid directory (status {validation_response.status_code}): {new_path}")
+                    continue
+            except requests.exceptions.RequestException:
+                # If validation fails, still queue it (let discover_files_and_directories handle the error)
+                # This handles cases where HEAD might not work but GET does
+                pass
             
             logger.info(f"Queuing subdirectory: {new_path}")
             directories_to_process.append(new_path)
