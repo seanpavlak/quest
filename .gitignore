@@ -22,6 +22,8 @@ build/
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
+*.tfplan
+tfplan
 terraform.tfvars
 *.tfvars.backup
 crash.log
