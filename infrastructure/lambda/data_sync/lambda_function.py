@@ -29,6 +29,8 @@ def lambda_handler(event, context):
     """
     bucket_name = os.environ.get('S3_BUCKET_NAME')
     region = os.environ.get('AWS_REGION', 'us-east-1')
+    archive_bucket = os.environ.get('S3_ARCHIVE_BUCKET')  # Optional: separate archive bucket
+    archive_prefix = os.environ.get('S3_ARCHIVE_PREFIX', 'archive/')  # Default: archive/ prefix
     
     if not bucket_name:
         logger.error("S3_BUCKET_NAME environment variable not set")
@@ -43,9 +45,9 @@ def lambda_handler(event, context):
     }
     
     try:
-        # Sync BLS data
+        # Sync BLS data (with archiving support)
         logger.info("Starting BLS data sync...")
-        sync_bls_data(bucket_name, region)
+        sync_bls_data(bucket_name, region, archive_bucket, archive_prefix)
         results['bls_sync'] = True
         logger.info("BLS data sync completed")
         

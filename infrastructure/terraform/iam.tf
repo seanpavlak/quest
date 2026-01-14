@@ -41,6 +41,7 @@ resource "aws_iam_role_policy" "data_sync_lambda" {
           "s3:PutObject",
           "s3:GetObject",
           "s3:DeleteObject",
+          "s3:CopyObject",
           "s3:ListBucket"
         ]
         Resource = [

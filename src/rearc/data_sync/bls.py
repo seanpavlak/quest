@@ -119,6 +119,48 @@ def upload_file_to_s3(s3_client, bucket: str, key: str, content: bytes) -> bool:
         return False
 
 
+def archive_file_to_s3(s3_client, source_bucket: str, source_key: str, 
+                       archive_bucket: str = None, archive_prefix: str = 'archive/') -> bool:
+    """
+    Archive a file by copying it to an archive location and then deleting the original.
+    
+    Args:
+        s3_client: Boto3 S3 client
+        source_bucket: Source bucket name
+        source_key: Source object key
+        archive_bucket: Archive bucket name (if None, uses source_bucket with prefix)
+        archive_prefix: Prefix for archive location (default: 'archive/')
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Determine archive location
+        if archive_bucket is None:
+            archive_bucket = source_bucket
+            archive_key = f"{archive_prefix}{source_key}"
+        else:
+            archive_key = f"{archive_prefix}{source_key}" if archive_prefix else source_key
+        
+        # Copy object to archive location
+        copy_source = {'Bucket': source_bucket, 'Key': source_key}
+        s3_client.copy_object(
+            CopySource=copy_source,
+            Bucket=archive_bucket,
+            Key=archive_key
+        )
+        logger.info(f"Archived {source_key} to {archive_key}")
+        
+        # Delete original file
+        s3_client.delete_object(Bucket=source_bucket, Key=source_key)
+        logger.info(f"Deleted original: {source_key}")
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error archiving {source_key}: {e}")
+        return False
+
+
 def delete_file_from_s3(s3_client, bucket: str, key: str) -> bool:
     """Delete file from S3."""
     try:
@@ -311,21 +353,28 @@ def sync_directory_iterative(
     return discovered_files
 
 
-def sync_bls_data(bucket_name: str, region: str = 'us-east-1'):
+def sync_bls_data(bucket_name: str, region: str = 'us-east-1', 
+                  archive_bucket: str = None, archive_prefix: str = 'archive/'):
     """
     Main function to sync BLS data to S3.
     
     Performs full iterative directory traversal using a queue, discovers all files dynamically,
-    syncs new/changed files, and deletes files from S3 that no longer exist in source.
+    syncs new/changed files, and archives files from S3 that no longer exist in source.
     
     Args:
         bucket_name: Name of the S3 bucket
         region: AWS region
+        archive_bucket: Archive bucket name (if None, uses bucket_name with archive_prefix)
+        archive_prefix: Prefix for archive location (default: 'archive/')
     """
     s3_client = boto3.client('s3', region_name=region)
     
     logger.info(f"Starting BLS data sync to bucket: {bucket_name}")
     logger.info(f"Source URL: {BLS_BASE_URL}")
+    if archive_bucket:
+        logger.info(f"Archive bucket: {archive_bucket}")
+    else:
+        logger.info(f"Archive prefix: {archive_prefix}")
     
     # Step 1: Discover and sync all files iteratively
     logger.info("Discovering and syncing files from source...")
@@ -333,34 +382,44 @@ def sync_bls_data(bucket_name: str, region: str = 'us-east-1'):
     
     logger.info(f"Discovered {len(discovered_files)} files from source")
     
-    # Step 2: Get all existing files in S3 (with BLS prefix if needed)
+    # Step 2: Get all existing files in S3
     logger.info("Listing existing files in S3...")
     s3_files = list_s3_objects(s3_client, bucket_name)
     
-    # Filter to only BLS-related files (exclude population data, etc.)
-    # BLS files typically don't have a prefix, but we'll check all
-    # For now, we'll assume all files in root are BLS files
-    # In a production system, you might want to use a prefix like 'bls/'
+    # Filter to only BLS-related files:
+    # - Exclude population data files (start with "population_data_")
+    # - Exclude archive files (start with archive_prefix)
+    # - Only process files that could be BLS files
+    population_file_pattern = "population_data_"
+    archive_prefix_clean = archive_prefix.rstrip('/')
     
-    logger.info(f"Found {len(s3_files)} existing files in S3")
+    bls_files_in_s3 = {
+        f for f in s3_files 
+        if not f.startswith(population_file_pattern) 
+        and not f.startswith(archive_prefix_clean)
+    }
     
-    # Step 3: Find files in S3 that no longer exist in source (deletions)
-    files_to_delete = s3_files - discovered_files
+    logger.info(f"Found {len(s3_files)} total files in S3")
+    logger.info(f"Found {len(bls_files_in_s3)} BLS-related files in S3 (excluding population and archive files)")
     
-    if files_to_delete:
-        logger.info(f"Found {len(files_to_delete)} files to delete from S3")
-        for file_key in files_to_delete:
-            logger.info(f"Deleting file from S3: {file_key}")
-            delete_file_from_s3(s3_client, bucket_name, file_key)
+    # Step 3: Find BLS files in S3 that no longer exist in source (to archive)
+    files_to_archive = bls_files_in_s3 - discovered_files
+    
+    if files_to_archive:
+        logger.info(f"Found {len(files_to_archive)} BLS files to archive (removed from source)")
+        for file_key in files_to_archive:
+            logger.info(f"Archiving file: {file_key}")
+            archive_file_to_s3(s3_client, bucket_name, file_key, archive_bucket, archive_prefix)
     else:
-        logger.info("No files to delete from S3")
+        logger.info("No BLS files to archive")
     
     # Summary
     logger.info("=" * 60)
     logger.info("BLS Data Sync Summary:")
     logger.info(f"  Files discovered from source: {len(discovered_files)}")
-    logger.info(f"  Files in S3: {len(s3_files)}")
-    logger.info(f"  Files deleted: {len(files_to_delete)}")
+    logger.info(f"  Total files in S3: {len(s3_files)}")
+    logger.info(f"  BLS files in S3: {len(bls_files_in_s3)}")
+    logger.info(f"  Files archived: {len(files_to_archive)}")
     logger.info("=" * 60)
     logger.info("BLS data sync completed successfully")
 
