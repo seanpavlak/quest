@@ -84,6 +84,20 @@ fetch_and_save_population_data('my-bucket', region='us-east-1')
 jupyter notebook notebooks/data_analysis.ipynb
 ```
 
+## Data Management & Retention
+
+### BLS Data Sync
+- **Active dataset**: The S3 bucket maintains a sync with the BLS source. Files removed from the BLS website are **archived** (not deleted) to preserve historical data.
+- **Archive location**: By default, archived BLS files are moved to the `archive/` prefix in the same bucket with timestamped filenames (e.g., `archive/pr.data.0.Current_20260114_020000`).
+- **Timestamped archives**: Each archive includes a timestamp to ensure uniqueness. If the same file is archived multiple times, each archive is preserved as a separate object.
+- **Configuration**: Set `S3_ARCHIVE_BUCKET` and `S3_ARCHIVE_PREFIX` environment variables in the Lambda to customize archive behavior.
+
+### Population Data
+- **Historical retention**: Each API fetch creates a new timestamped JSON file (`population_data_YYYYMMDD_HHMMSS.json`). All files are retained to preserve historical data.
+- **No automatic cleanup**: Population files are not automatically deleted or archived. Consider adding S3 lifecycle policies if you need to manage storage costs over time.
+
+For more details, see the [Complete Deployment Guide](DEPLOYMENT_GUIDE.md).
+
 ## Infrastructure Deployment
 
 See [infrastructure/README.md](infrastructure/README.md) for Terraform deployment instructions.

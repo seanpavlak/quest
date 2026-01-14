@@ -11,6 +11,7 @@ import hashlib
 import re
 from urllib.parse import urljoin
 from typing import Set, List, Tuple
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -121,7 +122,10 @@ def upload_file_to_s3(s3_client, bucket: str, key: str, content: bytes) -> bool:
 def archive_file_to_s3(s3_client, source_bucket: str, source_key: str, 
                        archive_bucket: str = None, archive_prefix: str = 'archive/') -> bool:
     """
-    Archive a file by copying it to an archive location and then deleting the original.
+    Archive a file by copying it to an archive location with a timestamp and then deleting the original.
+    
+    This ensures that if the same file is archived multiple times (e.g., removed from source,
+    re-added, then removed again), each archive is preserved as a separate object.
     
     Args:
         s3_client: Boto3 S3 client
@@ -134,12 +138,33 @@ def archive_file_to_s3(s3_client, source_bucket: str, source_key: str,
         True if successful, False otherwise
     """
     try:
+        # Generate timestamp for unique archive key
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Extract filename and path components
+        # If source_key has path separators, preserve the directory structure
+        if '/' in source_key:
+            path_parts = source_key.rsplit('/', 1)
+            directory = path_parts[0] + '/'
+            filename = path_parts[1]
+        else:
+            directory = ''
+            filename = source_key
+        
+        # Create archive key with timestamp: archive/directory/filename_YYYYMMDD_HHMMSS
+        # This preserves directory structure and ensures uniqueness
+        timestamped_filename = f"{filename}_{timestamp}"
+        if directory:
+            archive_path = f"{directory}{timestamped_filename}"
+        else:
+            archive_path = timestamped_filename
+        
         # Determine archive location
         if archive_bucket is None:
             archive_bucket = source_bucket
-            archive_key = f"{archive_prefix}{source_key}"
+            archive_key = f"{archive_prefix}{archive_path}"
         else:
-            archive_key = f"{archive_prefix}{source_key}" if archive_prefix else source_key
+            archive_key = f"{archive_prefix}{archive_path}" if archive_prefix else archive_path
         
         # Copy object to archive location
         copy_source = {'Bucket': source_bucket, 'Key': source_key}

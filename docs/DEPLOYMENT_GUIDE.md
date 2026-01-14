@@ -117,7 +117,7 @@ aws s3 ls s3://rearc-data-pipeline-data-08041c62/ --recursive
    │   └─► Syncs all files from BLS website to S3
    │       - Dynamic file discovery (iterative directory traversal)
    │       - Change detection (MD5 comparison)
-   │       - Handles additions, updates, deletions
+   │       - Handles additions, updates, deletions (**deletions are archived** with timestamps to `archive/` by default)
    │
    └─► Part 2: Population API Fetch
        │
@@ -130,6 +130,7 @@ aws s3 ls s3://rearc-data-pipeline-data-08041c62/ --recursive
    │ Contains:
    │ - BLS time-series files (pr.data.0.Current, etc.)
    │ - Population JSON files (population_data_*.json)
+   │ - Archived BLS files (timestamped, under `archive/` or an optional archive bucket)
    │
    │ (JSON file created) ──┐
    │                       │
@@ -248,8 +249,23 @@ The BLS data sync module implements a robust synchronization mechanism that:
 3. **File Management**
    - Handles file additions (new files in source)
    - Handles file updates (changed files)
-   - Handles file deletions (removes files from S3 that no longer exist in source)
+   - Handles file deletions (files removed from the BLS source are **archived** instead of hard-deleted)
    - Preserves directory structure in S3
+
+#### BLS deletion handling (archive vs delete)
+
+To retain stale data without losing it, the BLS sync treats “deleted from source” files as **archive candidates**:
+
+- **What happens**: If a key exists in S3 (as a BLS file) but no longer exists at the BLS source URL, it is copied to an archive location with a timestamp and then removed from the “active” dataset location.
+- **Default archive location**: the same bucket under the `archive/` prefix with timestamped filenames (example: `archive/pr.data.0.Current_20260114_020000`).
+- **Timestamped archives**: Each archive includes a timestamp (`YYYYMMDD_HHMMSS`) to ensure uniqueness. If the same file is archived multiple times (e.g., removed, re-added, then removed again), each archive is preserved as a separate object.
+- **Optional archive bucket**: you can archive to a separate bucket instead of using a prefix.
+- **Population files are not affected**: objects matching `population_data_*.json` are excluded from this BLS archiving logic so the DataUSA history is retained.
+
+**Configuration (Data Sync Lambda environment variables):**
+
+- `S3_ARCHIVE_BUCKET` (optional): if set, archived objects are written to this bucket.
+- `S3_ARCHIVE_PREFIX` (optional, default `archive/`): prefix used for archived objects (either in the main bucket or the archive bucket).
 
 4. **BLS Compliance**
    - Includes User-Agent header with contact information
