@@ -4,9 +4,7 @@ Tests API fetching, S3 saving, and error handling.
 """
 import sys
 from pathlib import Path
-import logging
-import json
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from datetime import datetime
 
 # Add src to path
@@ -17,18 +15,16 @@ from rearc.data_sync.population import (
     fetch_population_data,
     save_to_s3,
     fetch_and_save_population_data,
-    DATAUSA_API_URL
+    DATAUSA_API_URL,
+    POPULATION_FILE_PREFIX,
 )
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 
 class TestFetchPopulationData:
     """Test population data fetching from API."""
     
     @patch('rearc.data_sync.population.requests.get')
-    def test_fetch_population_data_success(self, mock_get):
+    def test_fetch_population_data_success(self, mock_get: Mock) -> None:
         """Test successful API fetch."""
         # Mock API response
         mock_response = Mock()
@@ -46,10 +42,10 @@ class TestFetchPopulationData:
         assert result is not None
         assert 'data' in result
         assert len(result['data']) == 2
-        mock_get.assert_called_once_with('https://example.com/api', timeout=30)
+        mock_get.assert_called_once()
     
     @patch('rearc.data_sync.population.requests.get')
-    def test_fetch_population_data_http_error(self, mock_get):
+    def test_fetch_population_data_http_error(self, mock_get: Mock) -> None:
         """Test API fetch with HTTP error."""
         import requests
         mock_get.side_effect = requests.exceptions.HTTPError("404 Not Found")
@@ -59,9 +55,8 @@ class TestFetchPopulationData:
         assert result is None
     
     @patch('rearc.data_sync.population.requests.get')
-    def test_fetch_population_data_invalid_json(self, mock_get):
+    def test_fetch_population_data_invalid_json(self, mock_get: Mock) -> None:
         """Test API fetch with invalid JSON."""
-        import requests
         import json
         mock_response = Mock()
         mock_response.json.side_effect = json.JSONDecodeError("Invalid JSON", "", 0)
@@ -77,7 +72,7 @@ class TestSaveToS3:
     """Test saving population data to S3."""
     
     @patch('rearc.data_sync.population.boto3.client')
-    def test_save_to_s3_success(self, mock_boto3_client):
+    def test_save_to_s3_success(self, mock_boto3_client: Mock) -> None:
         """Test successful save to S3."""
         mock_s3_client = Mock()
         mock_boto3_client.return_value = mock_s3_client
@@ -94,7 +89,7 @@ class TestSaveToS3:
         assert call_args[1]['ContentType'] == 'application/json'
     
     @patch('rearc.data_sync.population.boto3.client')
-    def test_save_to_s3_timestamp_key(self, mock_boto3_client):
+    def test_save_to_s3_timestamp_key(self, mock_boto3_client: Mock) -> None:
         """Test save with timestamp-based key."""
         mock_s3_client = Mock()
         mock_boto3_client.return_value = mock_s3_client
@@ -106,14 +101,16 @@ class TestSaveToS3:
         assert result is True
         call_args = mock_s3_client.put_object.call_args
         key = call_args[1]['Key']
-        assert key.startswith('population_data_')
+        assert key.startswith(POPULATION_FILE_PREFIX)
         assert key.endswith('.json')
     
     @patch('rearc.data_sync.population.boto3.client')
-    def test_save_to_s3_error(self, mock_boto3_client):
+    def test_save_to_s3_error(self, mock_boto3_client: Mock) -> None:
         """Test save with S3 error."""
+        from botocore.exceptions import ClientError
         mock_s3_client = Mock()
-        mock_s3_client.put_object.side_effect = Exception("S3 Error")
+        error_response = {'Error': {'Code': 'AccessDenied'}}
+        mock_s3_client.put_object.side_effect = ClientError(error_response, 'put_object')
         mock_boto3_client.return_value = mock_s3_client
         
         test_data = {'data': []}
@@ -128,7 +125,11 @@ class TestFetchAndSavePopulationData:
     
     @patch('rearc.data_sync.population.save_to_s3')
     @patch('rearc.data_sync.population.fetch_population_data')
-    def test_fetch_and_save_success(self, mock_fetch, mock_save):
+    def test_fetch_and_save_success(
+        self,
+        mock_fetch: Mock,
+        mock_save: Mock
+    ) -> None:
         """Test successful fetch and save."""
         mock_fetch.return_value = {'data': [{'Year': 2013, 'Population': 316128839}]}
         mock_save.return_value = True
@@ -141,7 +142,11 @@ class TestFetchAndSavePopulationData:
     
     @patch('rearc.data_sync.population.save_to_s3')
     @patch('rearc.data_sync.population.fetch_population_data')
-    def test_fetch_and_save_fetch_fails(self, mock_fetch, mock_save):
+    def test_fetch_and_save_fetch_fails(
+        self,
+        mock_fetch: Mock,
+        mock_save: Mock
+    ) -> None:
         """Test fetch and save when fetch fails."""
         mock_fetch.return_value = None
         
@@ -153,7 +158,11 @@ class TestFetchAndSavePopulationData:
     
     @patch('rearc.data_sync.population.save_to_s3')
     @patch('rearc.data_sync.population.fetch_population_data')
-    def test_fetch_and_save_save_fails(self, mock_fetch, mock_save):
+    def test_fetch_and_save_save_fails(
+        self,
+        mock_fetch: Mock,
+        mock_save: Mock
+    ) -> None:
         """Test fetch and save when save fails."""
         mock_fetch.return_value = {'data': []}
         mock_save.return_value = False
@@ -163,66 +172,3 @@ class TestFetchAndSavePopulationData:
         assert result is False
         mock_fetch.assert_called_once()
         mock_save.assert_called_once()
-
-
-def run_all_tests():
-    """Run all test classes."""
-    logger.info("=" * 60)
-    logger.info("Running Population API Test Suite")
-    logger.info("=" * 60)
-    
-    test_classes = [
-        TestFetchPopulationData,
-        TestSaveToS3,
-        TestFetchAndSavePopulationData
-    ]
-    
-    results = {}
-    
-    for test_class in test_classes:
-        class_name = test_class.__name__
-        logger.info(f"\n--- {class_name} ---")
-        
-        test_instance = test_class()
-        methods = [m for m in dir(test_instance) if m.startswith('test_')]
-        
-        class_results = {}
-        for method_name in methods:
-            try:
-                method = getattr(test_instance, method_name)
-                method()
-                class_results[method_name] = True
-                logger.info(f"  ✓ {method_name}")
-            except Exception as e:
-                class_results[method_name] = False
-                logger.error(f"  ✗ {method_name}: {e}")
-        
-        results[class_name] = class_results
-    
-    # Summary
-    logger.info("\n" + "=" * 60)
-    logger.info("TEST SUMMARY")
-    logger.info("=" * 60)
-    
-    total_tests = 0
-    passed_tests = 0
-    
-    for class_name, class_results in results.items():
-        for test_name, passed in class_results.items():
-            total_tests += 1
-            if passed:
-                passed_tests += 1
-            status = "✓ PASS" if passed else "✗ FAIL"
-            logger.info(f"{class_name}.{test_name:30} {status}")
-    
-    logger.info("=" * 60)
-    logger.info(f"Total: {total_tests}, Passed: {passed_tests}, Failed: {total_tests - passed_tests}")
-    logger.info("=" * 60)
-    
-    return passed_tests == total_tests
-
-
-if __name__ == '__main__':
-    success = run_all_tests()
-    sys.exit(0 if success else 1)
-

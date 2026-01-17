@@ -4,10 +4,9 @@ Tests all three analytical queries with various edge cases.
 """
 import sys
 from pathlib import Path
-import logging
+from typing import List, Dict, Any
+
 import pandas as pd
-import numpy as np
-from unittest.mock import Mock
 
 # Add src to path
 project_root = Path(__file__).resolve().parent.parent
@@ -19,16 +18,13 @@ from rearc.analytics.queries import (
     query3_combined_report
 )
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
 
 class TestQuery1PopulationStats:
     """Test Query 1: Population statistics."""
     
-    def test_query1_normal_case(self):
+    def test_query1_normal_case(self) -> None:
         """Test normal case with valid data."""
-        data = [
+        data: List[Dict[str, Any]] = [
             {'Year': 2013, 'Population': 316128839},
             {'Year': 2014, 'Population': 318857056},
             {'Year': 2015, 'Population': 321418821},
@@ -45,9 +41,9 @@ class TestQuery1PopulationStats:
         assert result['mean'] > 0
         assert result['std_dev'] >= 0
     
-    def test_query1_filtered_years(self):
+    def test_query1_filtered_years(self) -> None:
         """Test that only years 2013-2018 are included."""
-        data = [
+        data: List[Dict[str, Any]] = [
             {'Year': 2012, 'Population': 313000000},  # Should be excluded
             {'Year': 2013, 'Population': 316128839},
             {'Year': 2018, 'Population': 327167439},
@@ -60,9 +56,9 @@ class TestQuery1PopulationStats:
         # Should only use 2013-2018 data
         assert result['mean'] == (316128839 + 327167439) / 2
     
-    def test_query1_no_data(self):
+    def test_query1_no_data(self) -> None:
         """Test with no data for years 2013-2018."""
-        data = [
+        data: List[Dict[str, Any]] = [
             {'Year': 2010, 'Population': 309000000},
             {'Year': 2020, 'Population': 331000000},
         ]
@@ -73,9 +69,9 @@ class TestQuery1PopulationStats:
         assert result['mean'] == 0
         assert result['std_dev'] == 0
     
-    def test_query1_single_year(self):
+    def test_query1_single_year(self) -> None:
         """Test with single year data."""
-        data = [{'Year': 2015, 'Population': 321418821}]
+        data: List[Dict[str, Any]] = [{'Year': 2015, 'Population': 321418821}]
         df = pd.DataFrame(data)
         
         result = query1_population_stats(df)
@@ -88,9 +84,9 @@ class TestQuery1PopulationStats:
 class TestQuery2BestYearPerSeries:
     """Test Query 2: Best year per series."""
     
-    def test_query2_normal_case(self):
+    def test_query2_normal_case(self) -> None:
         """Test normal case with multiple series and years."""
-        data = {
+        data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006011', 'PRS30006011', 'PRS30006011', 'PRS30006011',
                          'PRS30006012', 'PRS30006012', 'PRS30006012', 'PRS30006012'],
             'year': [1995, 1995, 1996, 1996, 2000, 2000, 2001, 2001],
@@ -115,9 +111,9 @@ class TestQuery2BestYearPerSeries:
         assert prs2['year'] == 2000
         assert prs2['value'] == 8
     
-    def test_query2_with_whitespace(self):
+    def test_query2_with_whitespace(self) -> None:
         """Test with whitespace in series_id (should be trimmed)."""
-        data = {
+        data: Dict[str, List[Any]] = {
             'series_id': [' PRS30006011 ', ' PRS30006011 ', 'PRS30006011', 'PRS30006011'],
             'year': [1995, 1995, 1996, 1996],
             'value': [1, 2, 3, 4]
@@ -130,9 +126,9 @@ class TestQuery2BestYearPerSeries:
         assert len(result) == 1
         assert result.iloc[0]['series_id'] == 'PRS30006011'  # Should be trimmed
     
-    def test_query2_single_series(self):
+    def test_query2_single_series(self) -> None:
         """Test with single series."""
-        data = {
+        data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006011', 'PRS30006011'],
             'year': [1995, 1996],
             'value': [5, 10]
@@ -145,7 +141,7 @@ class TestQuery2BestYearPerSeries:
         assert result.iloc[0]['year'] == 1996
         assert result.iloc[0]['value'] == 10
     
-    def test_query2_empty_dataframe(self):
+    def test_query2_empty_dataframe(self) -> None:
         """Test with empty dataframe."""
         df = pd.DataFrame(columns=['series_id', 'year', 'value'])
         
@@ -157,9 +153,9 @@ class TestQuery2BestYearPerSeries:
 class TestQuery3CombinedReport:
     """Test Query 3: Combined report."""
     
-    def test_query3_normal_case(self):
+    def test_query3_normal_case(self) -> None:
         """Test normal case with matching data."""
-        bls_data = {
+        bls_data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006032', 'PRS30006032', 'PRS30006032'],
             'year': [2013, 2014, 2015],
             'period': ['Q01', 'Q01', 'Q01'],
@@ -167,7 +163,7 @@ class TestQuery3CombinedReport:
         }
         bls_df = pd.DataFrame(bls_data)
         
-        pop_data = {
+        pop_data: Dict[str, List[Any]] = {
             'Year': [2013, 2014, 2015, 2016],
             'Population': [316128839, 318857056, 321418821, 323127515]
         }
@@ -186,9 +182,9 @@ class TestQuery3CombinedReport:
         assert result[result['year'] == 2013]['Population'].iloc[0] == 316128839
         assert result[result['year'] == 2014]['Population'].iloc[0] == 318857056
     
-    def test_query3_no_matching_population(self):
+    def test_query3_no_matching_population(self) -> None:
         """Test when population data doesn't have matching years."""
-        bls_data = {
+        bls_data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006032', 'PRS30006032'],
             'year': [2010, 2011],  # Years not in population data
             'period': ['Q01', 'Q01'],
@@ -196,7 +192,7 @@ class TestQuery3CombinedReport:
         }
         bls_df = pd.DataFrame(bls_data)
         
-        pop_data = {
+        pop_data: Dict[str, List[Any]] = {
             'Year': [2013, 2014],
             'Population': [316128839, 318857056]
         }
@@ -208,9 +204,9 @@ class TestQuery3CombinedReport:
         # Population should be NaN for non-matching years
         assert pd.isna(result['Population']).all()
     
-    def test_query3_wrong_series_id(self):
+    def test_query3_wrong_series_id(self) -> None:
         """Test filtering for only PRS30006032."""
-        bls_data = {
+        bls_data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006032', 'PRS30006011', 'PRS30006032'],  # Mixed series
             'year': [2013, 2013, 2014],
             'period': ['Q01', 'Q01', 'Q01'],
@@ -218,7 +214,7 @@ class TestQuery3CombinedReport:
         }
         bls_df = pd.DataFrame(bls_data)
         
-        pop_data = {
+        pop_data: Dict[str, List[Any]] = {
             'Year': [2013, 2014],
             'Population': [316128839, 318857056]
         }
@@ -230,9 +226,9 @@ class TestQuery3CombinedReport:
         assert len(result) == 2
         assert (result['series_id'] == 'PRS30006032').all()
     
-    def test_query3_wrong_period(self):
+    def test_query3_wrong_period(self) -> None:
         """Test filtering for only Q01 period."""
-        bls_data = {
+        bls_data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006032', 'PRS30006032', 'PRS30006032'],
             'year': [2013, 2013, 2014],
             'period': ['Q01', 'Q02', 'Q01'],  # Mixed periods
@@ -240,7 +236,7 @@ class TestQuery3CombinedReport:
         }
         bls_df = pd.DataFrame(bls_data)
         
-        pop_data = {
+        pop_data: Dict[str, List[Any]] = {
             'Year': [2013, 2014],
             'Population': [316128839, 318857056]
         }
@@ -252,9 +248,9 @@ class TestQuery3CombinedReport:
         assert len(result) == 2
         assert (result['period'] == 'Q01').all()
     
-    def test_query3_no_data(self):
+    def test_query3_no_data(self) -> None:
         """Test with no matching data."""
-        bls_data = {
+        bls_data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006011'],  # Wrong series_id
             'year': [2013],
             'period': ['Q01'],
@@ -262,7 +258,7 @@ class TestQuery3CombinedReport:
         }
         bls_df = pd.DataFrame(bls_data)
         
-        pop_data = {
+        pop_data: Dict[str, List[Any]] = {
             'Year': [2013],
             'Population': [316128839]
         }
@@ -272,66 +268,3 @@ class TestQuery3CombinedReport:
         
         assert len(result) == 0
         assert list(result.columns) == ['series_id', 'year', 'period', 'value', 'Population']
-
-
-def run_all_tests():
-    """Run all test classes."""
-    logger.info("=" * 60)
-    logger.info("Running Analytics Queries Test Suite")
-    logger.info("=" * 60)
-    
-    test_classes = [
-        TestQuery1PopulationStats,
-        TestQuery2BestYearPerSeries,
-        TestQuery3CombinedReport
-    ]
-    
-    results = {}
-    
-    for test_class in test_classes:
-        class_name = test_class.__name__
-        logger.info(f"\n--- {class_name} ---")
-        
-        test_instance = test_class()
-        methods = [m for m in dir(test_instance) if m.startswith('test_')]
-        
-        class_results = {}
-        for method_name in methods:
-            try:
-                method = getattr(test_instance, method_name)
-                method()
-                class_results[method_name] = True
-                logger.info(f"  ✓ {method_name}")
-            except Exception as e:
-                class_results[method_name] = False
-                logger.error(f"  ✗ {method_name}: {e}")
-        
-        results[class_name] = class_results
-    
-    # Summary
-    logger.info("\n" + "=" * 60)
-    logger.info("TEST SUMMARY")
-    logger.info("=" * 60)
-    
-    total_tests = 0
-    passed_tests = 0
-    
-    for class_name, class_results in results.items():
-        for test_name, passed in class_results.items():
-            total_tests += 1
-            if passed:
-                passed_tests += 1
-            status = "✓ PASS" if passed else "✗ FAIL"
-            logger.info(f"{class_name}.{test_name:30} {status}")
-    
-    logger.info("=" * 60)
-    logger.info(f"Total: {total_tests}, Passed: {passed_tests}, Failed: {total_tests - passed_tests}")
-    logger.info("=" * 60)
-    
-    return passed_tests == total_tests
-
-
-if __name__ == '__main__':
-    success = run_all_tests()
-    sys.exit(0 if success else 1)
-

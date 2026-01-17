@@ -4,12 +4,15 @@ Lambda function for Analytics
 Processes SQS messages triggered by S3 events and runs analytics queries.
 """
 
-import os
 import json
+import logging
+import os
+from io import StringIO
+from typing import Any, Dict, List, Optional
+
 import boto3
 import pandas as pd
-import logging
-from io import StringIO
+from botocore.exceptions import ClientError, BotoCoreError
 
 # Import from the rearc package
 from rearc.analytics import (
@@ -22,20 +25,38 @@ from rearc.analytics import (
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# Constants
+POPULATION_FILE_PREFIX = "population_data_"
+POPULATION_FILE_SUFFIX = ".json"
+DEFAULT_BLS_FILE_KEY = "pr.data.0.Current"
+
 s3_client = boto3.client('s3')
 
 
 def load_data_from_s3(bucket_name: str, key: str) -> str:
-    """Load data from S3 and return as string."""
+    """
+    Load data from S3 and return as string.
+    
+    Args:
+        bucket_name: S3 bucket name
+        key: S3 object key
+        
+    Returns:
+        File content as UTF-8 string
+        
+    Raises:
+        ClientError: If S3 operation fails
+        BotoCoreError: If boto3 operation fails
+    """
     try:
         response = s3_client.get_object(Bucket=bucket_name, Key=key)
         return response['Body'].read().decode('utf-8')
-    except Exception as e:
+    except (ClientError, BotoCoreError) as e:
         logger.error(f"Error loading {key} from S3: {e}")
         raise
 
 
-def lambda_handler(event, context):
+def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Lambda handler for analytics processing.
     Triggered by SQS messages from S3 events.
@@ -48,15 +69,19 @@ def lambda_handler(event, context):
         dict: Results of analytics queries
     """
     bucket_name = os.environ.get('S3_BUCKET_NAME')
+    bls_file_key = os.environ.get('BLS_FILE_KEY', DEFAULT_BLS_FILE_KEY)
     
     if not bucket_name:
         logger.error("S3_BUCKET_NAME environment variable not set")
-        return {'statusCode': 500, 'body': 'S3_BUCKET_NAME not configured'}
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'S3_BUCKET_NAME not configured'})
+        }
     
-    results = {}
+    results: Dict[str, Any] = {}
     
     # Get SQS records
-    records = event.get('Records', [])
+    records: List[Dict[str, Any]] = event.get('Records', [])
     
     if not records:
         logger.warning("No records found in event")
@@ -93,15 +118,15 @@ def lambda_handler(event, context):
                 logger.info(f"Processing S3 object: s3://{object_bucket}/{object_key}")
                 
                 # Only process if it's the population data JSON file
-                if object_key.startswith('population_data_') and object_key.endswith('.json'):
+                if (object_key.startswith(POPULATION_FILE_PREFIX) and
+                        object_key.endswith(POPULATION_FILE_SUFFIX)):
                     # Load population data
                     population_content = load_data_from_s3(object_bucket, object_key)
                     population_data = json.loads(population_content)
                     population_df = pd.DataFrame(population_data.get('data', []))
                     
                     # Load BLS data
-                    bls_key = 'pr.data.0.Current'
-                    bls_content = load_data_from_s3(object_bucket, bls_key)
+                    bls_content = load_data_from_s3(object_bucket, bls_file_key)
                     bls_df = pd.read_csv(StringIO(bls_content), sep='\t')
                     
                     # Clean data
@@ -119,6 +144,9 @@ def lambda_handler(event, context):
                     logger.info(f"Query 2 Results: {len(results['query2'])} records")
                     logger.info(f"Query 3 Results: {len(results['query3'])} records")
                     
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.error(f"Error parsing record: {str(e)}", exc_info=True)
+            results['error'] = f"Parse error: {str(e)}"
         except Exception as e:
             logger.error(f"Error processing record: {str(e)}", exc_info=True)
             results['error'] = str(e)

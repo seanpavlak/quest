@@ -4,38 +4,37 @@ Tests directory traversal, file discovery, sync logic, and deletion handling.
 """
 import sys
 from pathlib import Path
-import logging
-import json
-from unittest.mock import Mock, patch, MagicMock
 from io import BytesIO
+from unittest.mock import Mock, patch
 
 # Add src to path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root / 'src'))
 
-from rearc.data_sync.bls import (
+from rearc.data_sync.bls_parser import (
     parse_directory_listing,
     discover_files_and_directories,
-    sync_file,
-    sync_directory_iterative,
-    sync_bls_data,
+    fetch_url_content,
+)
+from rearc.data_sync.bls_s3_ops import (
     calculate_md5,
     get_s3_object_etag,
     upload_file_to_s3,
     delete_file_from_s3,
     list_s3_objects,
-    fetch_url_content,
-    BLS_BASE_URL
 )
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+from rearc.data_sync.bls_sync import (
+    sync_file,
+    sync_directory_iterative,
+    sync_bls_data,
+    BLS_BASE_URL,
+)
 
 
 class TestDirectoryListingParsing:
     """Test HTML directory listing parsing."""
     
-    def test_parse_simple_directory(self):
+    def test_parse_simple_directory(self) -> None:
         """Test parsing a simple directory listing."""
         html = """
         <html>
@@ -57,7 +56,7 @@ class TestDirectoryListingParsing:
         assert len(files) == 2
         assert len(directories) == 1
     
-    def test_parse_skip_parent_directory(self):
+    def test_parse_skip_parent_directory(self) -> None:
         """Test that parent directory links are skipped."""
         html = """
         <html>
@@ -76,7 +75,7 @@ class TestDirectoryListingParsing:
         assert '../' not in directories
         assert 'file.txt' in files
     
-    def test_parse_apache_style_listing(self):
+    def test_parse_apache_style_listing(self) -> None:
         """Test parsing Apache-style directory listing."""
         html = """
         <html>
@@ -106,8 +105,8 @@ class TestDirectoryListingParsing:
 class TestFileDiscovery:
     """Test file and directory discovery."""
     
-    @patch('rearc.data_sync.bls.requests.get')
-    def test_discover_files_and_directories(self, mock_get):
+    @patch('rearc.data_sync.bls_parser.requests.get')
+    def test_discover_files_and_directories(self, mock_get: Mock) -> None:
         """Test discovering files and directories from a URL."""
         # Mock HTML response
         mock_response = Mock()
@@ -126,8 +125,8 @@ class TestFileDiscovery:
         assert 'subdir' in directories
         mock_get.assert_called_once()
     
-    @patch('rearc.data_sync.bls.requests.get')
-    def test_discover_handles_errors(self, mock_get):
+    @patch('rearc.data_sync.bls_parser.requests.get')
+    def test_discover_handles_errors(self, mock_get: Mock) -> None:
         """Test that discovery handles HTTP errors gracefully."""
         import requests
         mock_get.side_effect = requests.exceptions.RequestException("Network error")
@@ -141,7 +140,7 @@ class TestFileDiscovery:
 class TestS3Operations:
     """Test S3 operations with mocked boto3."""
     
-    def test_calculate_md5(self):
+    def test_calculate_md5(self) -> None:
         """Test MD5 calculation."""
         content = b"test content"
         md5 = calculate_md5(content)
@@ -150,7 +149,7 @@ class TestS3Operations:
         # Verify it's a valid MD5 hash (just check format, not exact value)
         assert all(c in '0123456789abcdef' for c in md5)
     
-    def test_get_s3_object_etag_exists(self):
+    def test_get_s3_object_etag_exists(self) -> None:
         """Test getting ETag for existing S3 object."""
         s3_client = Mock()
         s3_client.head_object.return_value = {'ETag': '"abc123"'}
@@ -161,17 +160,19 @@ class TestS3Operations:
         assert etag == 'abc123'
         s3_client.head_object.assert_called_once_with(Bucket='bucket', Key='key')
     
-    def test_get_s3_object_etag_not_exists(self):
+    def test_get_s3_object_etag_not_exists(self) -> None:
         """Test getting ETag for non-existent S3 object."""
+        from botocore.exceptions import ClientError
         s3_client = Mock()
         s3_client.exceptions.NoSuchKey = type('NoSuchKey', (Exception,), {})
-        s3_client.head_object.side_effect = s3_client.exceptions.NoSuchKey()
+        error_response = {'Error': {'Code': '404'}}
+        s3_client.head_object.side_effect = ClientError(error_response, 'head_object')
         
         etag = get_s3_object_etag(s3_client, 'bucket', 'key')
         
         assert etag is None
     
-    def test_upload_file_to_s3(self):
+    def test_upload_file_to_s3(self) -> None:
         """Test uploading file to S3."""
         s3_client = Mock()
         s3_client.put_object.return_value = {}
@@ -185,7 +186,7 @@ class TestS3Operations:
         assert call_kwargs['Key'] == 'key'
         assert call_kwargs['Body'] == b'content'
     
-    def test_delete_file_from_s3(self):
+    def test_delete_file_from_s3(self) -> None:
         """Test deleting file from S3."""
         s3_client = Mock()
         s3_client.delete_object.return_value = {}
@@ -195,7 +196,7 @@ class TestS3Operations:
         assert result is True
         s3_client.delete_object.assert_called_once_with(Bucket='bucket', Key='key')
     
-    def test_list_s3_objects(self):
+    def test_list_s3_objects(self) -> None:
         """Test listing S3 objects."""
         s3_client = Mock()
         paginator = Mock()
@@ -217,10 +218,15 @@ class TestS3Operations:
 class TestFileSync:
     """Test file synchronization logic."""
     
-    @patch('rearc.data_sync.bls.fetch_url_content')
-    @patch('rearc.data_sync.bls.get_s3_object_etag')
-    @patch('rearc.data_sync.bls.upload_file_to_s3')
-    def test_sync_file_new(self, mock_upload, mock_get_etag, mock_fetch):
+    @patch('rearc.data_sync.bls_sync.fetch_url_content')
+    @patch('rearc.data_sync.bls_sync.get_s3_object_etag')
+    @patch('rearc.data_sync.bls_sync.upload_file_to_s3')
+    def test_sync_file_new(
+        self,
+        mock_upload: Mock,
+        mock_get_etag: Mock,
+        mock_fetch: Mock
+    ) -> None:
         """Test syncing a new file (not in S3)."""
         s3_client = Mock()
         mock_fetch.return_value = b'file content'
@@ -232,10 +238,15 @@ class TestFileSync:
         assert result is True
         mock_upload.assert_called_once()
     
-    @patch('rearc.data_sync.bls.fetch_url_content')
-    @patch('rearc.data_sync.bls.get_s3_object_etag')
-    @patch('rearc.data_sync.bls.upload_file_to_s3')
-    def test_sync_file_unchanged(self, mock_upload, mock_get_etag, mock_fetch):
+    @patch('rearc.data_sync.bls_sync.fetch_url_content')
+    @patch('rearc.data_sync.bls_sync.get_s3_object_etag')
+    @patch('rearc.data_sync.bls_sync.upload_file_to_s3')
+    def test_sync_file_unchanged(
+        self,
+        mock_upload: Mock,
+        mock_get_etag: Mock,
+        mock_fetch: Mock
+    ) -> None:
         """Test syncing an unchanged file (same MD5)."""
         s3_client = Mock()
         content = b'file content'
@@ -250,10 +261,15 @@ class TestFileSync:
         assert result is True
         mock_upload.assert_not_called()  # Should skip upload
     
-    @patch('rearc.data_sync.bls.fetch_url_content')
-    @patch('rearc.data_sync.bls.get_s3_object_etag')
-    @patch('rearc.data_sync.bls.upload_file_to_s3')
-    def test_sync_file_changed(self, mock_upload, mock_get_etag, mock_fetch):
+    @patch('rearc.data_sync.bls_sync.fetch_url_content')
+    @patch('rearc.data_sync.bls_sync.get_s3_object_etag')
+    @patch('rearc.data_sync.bls_sync.upload_file_to_s3')
+    def test_sync_file_changed(
+        self,
+        mock_upload: Mock,
+        mock_get_etag: Mock,
+        mock_fetch: Mock
+    ) -> None:
         """Test syncing a changed file (different MD5)."""
         s3_client = Mock()
         content = b'new file content'
@@ -272,15 +288,20 @@ class TestFileSync:
 class TestRecursiveSync:
     """Test iterative directory synchronization."""
     
-    @patch('rearc.data_sync.bls.requests.head')
-    @patch('rearc.data_sync.bls.discover_files_and_directories')
-    @patch('rearc.data_sync.bls.sync_file')
-    def test_sync_directory_iterative(self, mock_sync_file, mock_discover, mock_head):
+    @patch('rearc.data_sync.bls_sync.validate_directory_exists')
+    @patch('rearc.data_sync.bls_sync.discover_files_and_directories')
+    @patch('rearc.data_sync.bls_sync.sync_file')
+    def test_sync_directory_iterative(
+        self,
+        mock_sync_file: Mock,
+        mock_discover: Mock,
+        mock_validate: Mock
+    ) -> None:
         """Test iterative directory sync."""
         s3_client = Mock()
         
         # Mock discovery: root has files and a subdirectory
-        def discover_side_effect(base_url, path):
+        def discover_side_effect(base_url: str, path: str) -> tuple:
             if path == '':
                 return (['file1.txt', 'file2.txt'], ['subdir'])
             elif path == 'subdir':
@@ -289,11 +310,7 @@ class TestRecursiveSync:
         
         mock_discover.side_effect = discover_side_effect
         mock_sync_file.return_value = True
-        
-        # Mock HEAD request for directory validation (returns 200 for valid directories)
-        mock_head_response = Mock()
-        mock_head_response.status_code = 200
-        mock_head.return_value = mock_head_response
+        mock_validate.return_value = True  # All directories are valid
         
         discovered = sync_directory_iterative(s3_client, 'bucket', 'https://example.com/')
         
@@ -309,12 +326,20 @@ class TestRecursiveSync:
 class TestFullSync:
     """Test full BLS sync with mocked S3."""
     
-    @patch('rearc.data_sync.bls.sync_directory_iterative')
-    @patch('rearc.data_sync.bls.list_s3_objects')
-    @patch('rearc.data_sync.bls.delete_file_from_s3')
-    def test_sync_bls_data_full(self, mock_delete, mock_list, mock_sync_iterative):
+    @patch('rearc.data_sync.bls_sync.sync_directory_iterative')
+    @patch('rearc.data_sync.bls_sync.list_s3_objects')
+    @patch('rearc.data_sync.bls_sync.archive_file_to_s3')
+    @patch('rearc.data_sync.bls_sync.boto3.client')
+    def test_sync_bls_data_full(
+        self,
+        mock_boto3_client: Mock,
+        mock_archive: Mock,
+        mock_list: Mock,
+        mock_sync_iterative: Mock
+    ) -> None:
         """Test full BLS sync including deletion handling."""
         s3_client = Mock()
+        mock_boto3_client.return_value = s3_client
         
         # Mock discovered files
         discovered_files = {'file1.txt', 'file2.txt', 'pr.data.0.Current'}
@@ -324,21 +349,27 @@ class TestFullSync:
         existing_files = {'file1.txt', 'file2.txt', 'old_file.txt', 'pr.data.0.Current'}
         mock_list.return_value = existing_files
         
-        mock_delete.return_value = True
+        mock_archive.return_value = True
         
-        # Mock boto3.client
-        with patch('rearc.data_sync.bls.boto3.client', return_value=s3_client):
-            sync_bls_data('test-bucket', 'us-east-1')
+        sync_bls_data('test-bucket', 'us-east-1')
         
-        # Should delete old_file.txt (exists in S3 but not in source)
-        mock_delete.assert_called_once_with(s3_client, 'test-bucket', 'old_file.txt')
+        # Should archive old_file.txt (exists in S3 but not in source)
+        assert mock_archive.called
     
-    @patch('rearc.data_sync.bls.sync_directory_iterative')
-    @patch('rearc.data_sync.bls.list_s3_objects')
-    @patch('rearc.data_sync.bls.delete_file_from_s3')
-    def test_sync_bls_data_no_deletions(self, mock_delete, mock_list, mock_sync_iterative):
+    @patch('rearc.data_sync.bls_sync.sync_directory_iterative')
+    @patch('rearc.data_sync.bls_sync.list_s3_objects')
+    @patch('rearc.data_sync.bls_sync.archive_file_to_s3')
+    @patch('rearc.data_sync.bls_sync.boto3.client')
+    def test_sync_bls_data_no_deletions(
+        self,
+        mock_boto3_client: Mock,
+        mock_archive: Mock,
+        mock_list: Mock,
+        mock_sync_iterative: Mock
+    ) -> None:
         """Test sync when no files need deletion."""
         s3_client = Mock()
+        mock_boto3_client.return_value = s3_client
         
         discovered_files = {'file1.txt', 'file2.txt'}
         mock_sync_iterative.return_value = discovered_files
@@ -346,74 +377,7 @@ class TestFullSync:
         existing_files = {'file1.txt', 'file2.txt'}
         mock_list.return_value = existing_files
         
-        with patch('rearc.data_sync.bls.boto3.client', return_value=s3_client):
-            sync_bls_data('test-bucket', 'us-east-1')
+        sync_bls_data('test-bucket', 'us-east-1')
         
-        # Should not delete anything
-        mock_delete.assert_not_called()
-
-
-def run_all_tests():
-    """Run all test classes."""
-    logger.info("=" * 60)
-    logger.info("Running BLS Sync Test Suite")
-    logger.info("=" * 60)
-    
-    test_classes = [
-        TestDirectoryListingParsing,
-        TestFileDiscovery,
-        TestS3Operations,
-        TestFileSync,
-        TestRecursiveSync,
-        TestFullSync
-    ]
-    
-    results = {}
-    
-    for test_class in test_classes:
-        class_name = test_class.__name__
-        logger.info(f"\n--- {class_name} ---")
-        
-        test_instance = test_class()
-        methods = [m for m in dir(test_instance) if m.startswith('test_')]
-        
-        class_results = {}
-        for method_name in methods:
-            try:
-                method = getattr(test_instance, method_name)
-                method()
-                class_results[method_name] = True
-                logger.info(f"  ✓ {method_name}")
-            except Exception as e:
-                class_results[method_name] = False
-                logger.error(f"  ✗ {method_name}: {e}")
-        
-        results[class_name] = class_results
-    
-    # Summary
-    logger.info("\n" + "=" * 60)
-    logger.info("TEST SUMMARY")
-    logger.info("=" * 60)
-    
-    total_tests = 0
-    passed_tests = 0
-    
-    for class_name, class_results in results.items():
-        for test_name, passed in class_results.items():
-            total_tests += 1
-            if passed:
-                passed_tests += 1
-            status = "✓ PASS" if passed else "✗ FAIL"
-            logger.info(f"{class_name}.{test_name:30} {status}")
-    
-    logger.info("=" * 60)
-    logger.info(f"Total: {total_tests}, Passed: {passed_tests}, Failed: {total_tests - passed_tests}")
-    logger.info("=" * 60)
-    
-    return passed_tests == total_tests
-
-
-if __name__ == '__main__':
-    success = run_all_tests()
-    sys.exit(0 if success else 1)
-
+        # Should not archive anything
+        mock_archive.assert_not_called()

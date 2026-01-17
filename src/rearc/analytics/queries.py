@@ -4,21 +4,23 @@ Analytics Queries Module
 Contains the three analytical queries for the data pipeline.
 """
 
-import pandas as pd
 import logging
+from typing import Dict, Any
+
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 
-def query1_population_stats(population_df: pd.DataFrame) -> dict:
+def query1_population_stats(population_df: pd.DataFrame) -> Dict[str, float]:
     """
     Query 1: Calculate mean and standard deviation of US population (2013-2018).
     
     Args:
-        population_df: DataFrame containing population data
+        population_df: DataFrame containing population data with 'Year' and 'Population' columns
         
     Returns:
-        dict with 'mean' and 'std_dev' keys
+        Dictionary with 'mean' and 'std_dev' keys containing float values
     """
     logger.info("Query 1: Population Statistics (2013-2018)")
     
@@ -50,10 +52,10 @@ def query2_best_year_per_series(bls_df: pd.DataFrame) -> pd.DataFrame:
     Query 2: Find best year per series_id (year with max sum of values).
     
     Args:
-        bls_df: DataFrame containing BLS time-series data
+        bls_df: DataFrame containing BLS time-series data with 'series_id', 'year', and 'value' columns
         
     Returns:
-        DataFrame with columns: series_id, year, value
+        DataFrame with columns: series_id, year, value (sum of values for best year)
     """
     logger.info("Query 2: Best Year per Series ID")
     
@@ -85,13 +87,16 @@ def query2_best_year_per_series(bls_df: pd.DataFrame) -> pd.DataFrame:
     return best_years
 
 
-def query3_combined_report(bls_df: pd.DataFrame, population_df: pd.DataFrame) -> pd.DataFrame:
+def query3_combined_report(
+    bls_df: pd.DataFrame,
+    population_df: pd.DataFrame
+) -> pd.DataFrame:
     """
     Query 3: Combined report for PRS30006032 Q01 with population data.
     
     Args:
-        bls_df: DataFrame containing BLS time-series data
-        population_df: DataFrame containing population data
+        bls_df: DataFrame containing BLS time-series data with 'series_id', 'year', 'period', 'value' columns
+        population_df: DataFrame containing population data with 'Year' and 'Population' columns
         
     Returns:
         DataFrame with columns: series_id, year, period, value, Population

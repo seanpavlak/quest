@@ -5,6 +5,8 @@ Command-line interface for the Rearc Data Quest pipeline.
 import argparse
 import logging
 import sys
+from typing import NoReturn
+
 from .data_sync import sync_bls_data, fetch_and_save_population_data
 
 logging.basicConfig(
@@ -14,7 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(description='Rearc Data Quest Pipeline')
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
@@ -43,12 +45,24 @@ def main():
     
     try:
         if args.command == 'sync-bls':
-            sync_bls_data(args.bucket, args.region)
+            success = sync_bls_data(args.bucket, args.region)
+            if not success:
+                logger.error("BLS sync failed")
+                sys.exit(1)
         elif args.command == 'fetch-population':
-            fetch_and_save_population_data(args.bucket, args.region, args.key)
+            success = fetch_and_save_population_data(args.bucket, args.region, args.key)
+            if not success:
+                logger.error("Population data fetch failed")
+                sys.exit(1)
         elif args.command == 'sync-all':
-            sync_bls_data(args.bucket, args.region)
-            fetch_and_save_population_data(args.bucket, args.region)
+            bls_success = sync_bls_data(args.bucket, args.region)
+            pop_success = fetch_and_save_population_data(args.bucket, args.region)
+            if not (bls_success and pop_success):
+                logger.error("One or more sync operations failed")
+                sys.exit(1)
+    except KeyboardInterrupt:
+        logger.info("Operation cancelled by user")
+        sys.exit(130)
     except Exception as e:
         logger.error(f"Error: {e}", exc_info=True)
         sys.exit(1)
