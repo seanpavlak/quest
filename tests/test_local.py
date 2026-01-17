@@ -12,13 +12,13 @@ from io import StringIO
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root / 'src'))
 
-from rearc.data_sync.bls import (
-    fetch_url_content, 
-    calculate_md5,
+from rearc.data_sync.bls_parser import (
+    fetch_url_content,
     parse_directory_listing,
     discover_files_and_directories,
-    BLS_BASE_URL
 )
+from rearc.data_sync.bls_s3_ops import calculate_md5
+from rearc.data_sync.bls_sync import BLS_BASE_URL
 from rearc.data_sync.population import fetch_population_data
 from rearc.analytics.queries import (
     query1_population_stats,
