@@ -1,5 +1,6 @@
 resource "aws_s3_bucket" "data_bucket" {
-  bucket = "${var.project_name}-data-${random_id.bucket_suffix.hex}"
+  bucket        = "${var.project_name}-data-${random_id.bucket_suffix.hex}"
+  force_destroy = true
 
   tags = var.tags
 }
@@ -97,7 +98,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "data_bucket" {
 
 # S3 Bucket for Lambda deployment packages
 resource "aws_s3_bucket" "lambda_packages" {
-  bucket = "${var.project_name}-lambda-packages-${random_id.bucket_suffix.hex}"
+  bucket        = "${var.project_name}-lambda-packages-${random_id.bucket_suffix.hex}"
+  force_destroy = true
 
   tags = var.tags
 }
