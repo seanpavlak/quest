@@ -21,7 +21,8 @@ build/
 .terraform/
 *.tfstate
 *.tfstate.*
-.terraform.lock.hcl
+# Note: .terraform.lock.hcl should be COMMITTED to ensure consistent provider versions
+# .terraform.lock.hcl
 *.tfplan
 tfplan
 terraform.tfvars

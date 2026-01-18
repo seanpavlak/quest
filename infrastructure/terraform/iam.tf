@@ -33,7 +33,10 @@ resource "aws_iam_role_policy" "data_sync_lambda" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "arn:aws:logs:*:*:*"
+        Resource = [
+          aws_cloudwatch_log_group.data_sync.arn,
+          "${aws_cloudwatch_log_group.data_sync.arn}:*"
+        ]
       },
       {
         Effect = "Allow"
@@ -88,7 +91,10 @@ resource "aws_iam_role_policy" "analytics_lambda" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "arn:aws:logs:*:*:*"
+        Resource = [
+          aws_cloudwatch_log_group.analytics.arn,
+          "${aws_cloudwatch_log_group.analytics.arn}:*"
+        ]
       },
       {
         Effect = "Allow"

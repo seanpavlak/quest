@@ -48,3 +48,12 @@ output "cloudwatch_log_group_analytics" {
   value       = aws_cloudwatch_log_group.analytics.name
 }
 
+output "analytics_dlq_url" {
+  description = "URL of the Analytics Lambda Dead Letter Queue"
+  value       = var.enable_dlq ? aws_sqs_queue.analytics_dlq[0].id : null
+}
+
+output "analytics_dlq_arn" {
+  description = "ARN of the Analytics Lambda Dead Letter Queue"
+  value       = var.enable_dlq ? aws_sqs_queue.analytics_dlq[0].arn : null
+}

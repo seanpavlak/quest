@@ -26,18 +26,19 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "data_bucket" {
   }
 }
 
-# Public access block - set to false if you want to share the bucket publicly
+# Public access block - configurable via variable
 resource "aws_s3_bucket_public_access_block" "data_bucket" {
   bucket = aws_s3_bucket.data_bucket.id
 
-  block_public_acls       = false  # Allow public ACLs
-  block_public_policy     = false  # Allow public bucket policies
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  block_public_acls       = !var.enable_public_s3_access
+  block_public_policy     = !var.enable_public_s3_access
+  ignore_public_acls      = !var.enable_public_s3_access
+  restrict_public_buckets = !var.enable_public_s3_access
 }
 
-# Bucket policy to allow public read access
+# Bucket policy to allow public read access (only if enabled)
 resource "aws_s3_bucket_policy" "public_read" {
+  count  = var.enable_public_s3_access ? 1 : 0
   bucket = aws_s3_bucket.data_bucket.id
 
   policy = jsonencode({
@@ -54,6 +55,44 @@ resource "aws_s3_bucket_policy" "public_read" {
   })
 
   depends_on = [aws_s3_bucket_public_access_block.data_bucket]
+}
+
+# S3 Lifecycle Configuration for cost optimization
+resource "aws_s3_bucket_lifecycle_configuration" "data_bucket" {
+  count  = var.s3_lifecycle_enabled ? 1 : 0
+  bucket = aws_s3_bucket.data_bucket.id
+
+  rule {
+    id     = "delete_old_incomplete_multipart_uploads"
+    status = "Enabled"
+
+    filter {}
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  rule {
+    id     = "transition_old_versions"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_transition {
+      noncurrent_days = 30
+      storage_class   = "STANDARD_IA"
+    }
+
+    noncurrent_version_transition {
+      noncurrent_days = 90
+      storage_class   = "GLACIER"
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 365
+    }
+  }
 }
 
 # S3 Bucket for Lambda deployment packages

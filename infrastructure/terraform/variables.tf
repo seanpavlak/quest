@@ -37,7 +37,7 @@ variable "lambda_memory" {
 variable "schedule_expression" {
   description = "EventBridge schedule expression for data sync Lambda"
   type        = string
-  default     = "cron(0 2 * * ? *)"  # Daily at 2 AM UTC
+  default     = "cron(0 2 * * ? *)" # Daily at 2 AM UTC
 }
 
 variable "tags" {
@@ -49,3 +49,41 @@ variable "tags" {
   }
 }
 
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention in days"
+  type        = number
+  default     = 7
+  validation {
+    condition     = var.log_retention_days >= 1 && var.log_retention_days <= 3653
+    error_message = "Log retention must be between 1 and 3653 days."
+  }
+}
+
+variable "enable_public_s3_access" {
+  description = "Enable public read access to S3 data bucket"
+  type        = bool
+  default     = false
+}
+
+variable "sqs_message_retention_seconds" {
+  description = "SQS message retention period in seconds"
+  type        = number
+  default     = 345600
+  validation {
+    condition     = var.sqs_message_retention_seconds >= 60 && var.sqs_message_retention_seconds <= 1209600
+    error_message = "SQS message retention must be between 60 and 1209600 seconds (14 days)."
+  }
+}
+
+variable "enable_dlq" {
+  description = "Enable Dead Letter Queues for Lambda functions"
+  type        = bool
+  default     = true
+}
+
+variable "s3_lifecycle_enabled" {
+  description = "Enable S3 lifecycle policies for cost optimization"
+  type        = bool
+  default     = true
+}

@@ -57,14 +57,14 @@ We have a comprehensive test suite that verifies all functionality of the data p
 
 **Run**: `python tests/test_cli.py`
 
-### 6. `run_all_tests.py` - Test Runner
-**Purpose**: Run all tests locally without AWS
+### 6. Pytest Test Runner
+**Purpose**: Run all tests using pytest
 - ✅ Runs all unit tests
 - ✅ Runs integration tests
-- ✅ Provides summary report
+- ✅ Provides detailed test output
 - ✅ No AWS required (except integration tests need network)
 
-**Run**: `python tests/run_all_tests.py`
+**Run**: `pytest tests/` or `python -m pytest tests/`
 
 ## Test Coverage
 
@@ -121,8 +121,11 @@ Total: 17 unit tests, Passed: 17, Failed: 0
 
 ### Run All Tests (Recommended)
 ```bash
-# Run complete test suite (all unit + integration tests)
-python tests/run_all_tests.py
+# Run complete test suite using pytest (all unit + integration tests)
+pytest tests/ -v
+
+# Or with Python module syntax
+python -m pytest tests/ -v
 ```
 
 ### Run Individual Test Suites

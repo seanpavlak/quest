@@ -16,14 +16,14 @@ data "archive_file" "analytics_zip" {
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "data_sync" {
   name              = "/aws/lambda/${var.project_name}-data-sync"
-  retention_in_days = 7
+  retention_in_days = var.log_retention_days
 
   tags = var.tags
 }
 
 resource "aws_cloudwatch_log_group" "analytics" {
   name              = "/aws/lambda/${var.project_name}-analytics"
-  retention_in_days = 7
+  retention_in_days = var.log_retention_days
 
   tags = var.tags
 }
@@ -32,12 +32,12 @@ resource "aws_cloudwatch_log_group" "analytics" {
 resource "aws_lambda_function" "data_sync" {
   filename         = data.archive_file.data_sync_zip.output_path
   function_name    = "${var.project_name}-data-sync"
-  role            = aws_iam_role.data_sync_lambda.arn
-  handler         = "lambda_function.lambda_handler"
+  role             = aws_iam_role.data_sync_lambda.arn
+  handler          = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.data_sync_zip.output_base64sha256
-  runtime         = "python3.11"
-  timeout         = var.lambda_timeout
-  memory_size     = var.lambda_memory
+  runtime          = "python3.11"
+  timeout          = var.lambda_timeout
+  memory_size      = var.lambda_memory
 
   environment {
     variables = {
@@ -65,20 +65,24 @@ resource "aws_s3_object" "analytics_lambda_package" {
 
 # Analytics Lambda Function (using S3 for large package)
 resource "aws_lambda_function" "analytics" {
-  s3_bucket     = aws_s3_bucket.lambda_packages.id
-  s3_key        = aws_s3_object.analytics_lambda_package.key
-  function_name = "${var.project_name}-analytics"
-  role          = aws_iam_role.analytics_lambda.arn
-  handler       = "lambda_function.lambda_handler"
+  s3_bucket        = aws_s3_bucket.lambda_packages.id
+  s3_key           = aws_s3_object.analytics_lambda_package.key
+  function_name    = "${var.project_name}-analytics"
+  role             = aws_iam_role.analytics_lambda.arn
+  handler          = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.analytics_zip.output_base64sha256
-  runtime       = "python3.11"
-  timeout       = var.lambda_timeout
-  memory_size   = var.lambda_memory
+  runtime          = "python3.11"
+  timeout          = var.lambda_timeout
+  memory_size      = var.lambda_memory
 
   environment {
     variables = {
       S3_BUCKET_NAME = aws_s3_bucket.data_bucket.id
     }
+  }
+
+  dead_letter_config {
+    target_arn = var.enable_dlq ? aws_sqs_queue.analytics_dlq[0].arn : null
   }
 
   depends_on = [
