@@ -1,9 +1,9 @@
 resource "aws_cloudwatch_event_rule" "daily_schedule" {
-  name                = "${var.project_name}-daily-schedule"
+  name                = "${local.resource_prefix}-daily-schedule"
   description         = "Trigger data sync Lambda daily"
   schedule_expression = var.schedule_expression
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 resource "aws_cloudwatch_event_target" "data_sync_lambda" {

@@ -1,8 +1,8 @@
 resource "aws_s3_bucket" "data_bucket" {
-  bucket        = "${var.project_name}-data-${random_id.bucket_suffix.hex}"
-  force_destroy = true
+  bucket        = "${local.resource_prefix}-data-${random_id.bucket_suffix.hex}"
+  force_destroy = var.environment == "dev" ? true : false  # Only allow force_destroy in dev
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 resource "random_id" "bucket_suffix" {
@@ -98,10 +98,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "data_bucket" {
 
 # S3 Bucket for Lambda deployment packages
 resource "aws_s3_bucket" "lambda_packages" {
-  bucket        = "${var.project_name}-lambda-packages-${random_id.bucket_suffix.hex}"
+  bucket        = "${local.resource_prefix}-lambda-packages-${random_id.bucket_suffix.hex}"
   force_destroy = true
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 resource "aws_s3_bucket_versioning" "lambda_packages" {

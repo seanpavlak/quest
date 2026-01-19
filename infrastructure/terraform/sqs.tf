@@ -1,16 +1,16 @@
 # Dead Letter Queue for Analytics Lambda
 resource "aws_sqs_queue" "analytics_dlq" {
   count                     = var.enable_dlq ? 1 : 0
-  name                      = "${var.project_name}-analytics-dlq"
+  name                      = "${local.resource_prefix}-analytics-dlq"
   message_retention_seconds = 1209600 # 14 days (max for DLQ)
 
-  tags = merge(var.tags, {
+  tags = merge(local.common_tags, {
     Purpose = "DeadLetterQueue"
   })
 }
 
 resource "aws_sqs_queue" "s3_notifications" {
-  name                       = "${var.project_name}-s3-notifications"
+  name                       = "${local.resource_prefix}-s3-notifications"
   message_retention_seconds  = var.sqs_message_retention_seconds
   visibility_timeout_seconds = var.lambda_timeout + 60 # Lambda timeout + buffer
 
@@ -19,7 +19,7 @@ resource "aws_sqs_queue" "s3_notifications" {
     maxReceiveCount     = 3
   }) : null
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 resource "aws_sqs_queue_policy" "s3_notifications" {

@@ -15,23 +15,23 @@ data "archive_file" "analytics_zip" {
 
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "data_sync" {
-  name              = "/aws/lambda/${var.project_name}-data-sync"
+  name              = "/aws/lambda/${local.resource_prefix}-data-sync"
   retention_in_days = var.log_retention_days
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 resource "aws_cloudwatch_log_group" "analytics" {
-  name              = "/aws/lambda/${var.project_name}-analytics"
+  name              = "/aws/lambda/${local.resource_prefix}-analytics"
   retention_in_days = var.log_retention_days
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 # Data Sync Lambda Function
 resource "aws_lambda_function" "data_sync" {
   filename         = data.archive_file.data_sync_zip.output_path
-  function_name    = "${var.project_name}-data-sync"
+  function_name    = "${local.resource_prefix}-data-sync"
   role             = aws_iam_role.data_sync_lambda.arn
   handler          = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.data_sync_zip.output_base64sha256
@@ -52,7 +52,7 @@ resource "aws_lambda_function" "data_sync" {
     aws_iam_role_policy.data_sync_lambda
   ]
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 # Upload Analytics Lambda package to S3 (required for large packages >70MB)
@@ -67,7 +67,7 @@ resource "aws_s3_object" "analytics_lambda_package" {
 resource "aws_lambda_function" "analytics" {
   s3_bucket        = aws_s3_bucket.lambda_packages.id
   s3_key           = aws_s3_object.analytics_lambda_package.key
-  function_name    = "${var.project_name}-analytics"
+  function_name    = "${local.resource_prefix}-analytics"
   role             = aws_iam_role.analytics_lambda.arn
   handler          = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.analytics_zip.output_base64sha256
@@ -94,7 +94,7 @@ resource "aws_lambda_function" "analytics" {
     aws_s3_object.analytics_lambda_package
   ]
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 # SQS Event Source Mapping for Analytics Lambda

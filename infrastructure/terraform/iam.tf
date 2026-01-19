@@ -1,6 +1,6 @@
 # IAM Role for Data Sync Lambda
 resource "aws_iam_role" "data_sync_lambda" {
-  name = "${var.project_name}-data-sync-lambda-role"
+  name = "${local.resource_prefix}-data-sync-lambda-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -15,12 +15,12 @@ resource "aws_iam_role" "data_sync_lambda" {
     ]
   })
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 # IAM Policy for Data Sync Lambda
 resource "aws_iam_role_policy" "data_sync_lambda" {
-  name = "${var.project_name}-data-sync-lambda-policy"
+  name = "${local.resource_prefix}-data-sync-lambda-policy"
   role = aws_iam_role.data_sync_lambda.id
 
   policy = jsonencode({
@@ -58,7 +58,7 @@ resource "aws_iam_role_policy" "data_sync_lambda" {
 
 # IAM Role for Analytics Lambda
 resource "aws_iam_role" "analytics_lambda" {
-  name = "${var.project_name}-analytics-lambda-role"
+  name = "${local.resource_prefix}-analytics-lambda-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -73,12 +73,12 @@ resource "aws_iam_role" "analytics_lambda" {
     ]
   })
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 # IAM Policy for Analytics Lambda
 resource "aws_iam_role_policy" "analytics_lambda" {
-  name = "${var.project_name}-analytics-lambda-policy"
+  name = "${local.resource_prefix}-analytics-lambda-policy"
   role = aws_iam_role.analytics_lambda.id
 
   policy = jsonencode({
@@ -122,7 +122,7 @@ resource "aws_iam_role_policy" "analytics_lambda" {
 
 # IAM Role for SQS to receive S3 notifications
 resource "aws_iam_role" "s3_notifications" {
-  name = "${var.project_name}-s3-notifications-role"
+  name = "${local.resource_prefix}-s3-notifications-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -137,11 +137,11 @@ resource "aws_iam_role" "s3_notifications" {
     ]
   })
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 resource "aws_iam_role_policy" "s3_notifications" {
-  name = "${var.project_name}-s3-notifications-policy"
+  name = "${local.resource_prefix}-s3-notifications-policy"
   role = aws_iam_role.s3_notifications.id
 
   policy = jsonencode({

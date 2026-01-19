@@ -14,7 +14,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   ]
 
   tags = merge(
-    var.tags,
+    local.common_tags,
     {
       Name = "${var.project_name}-github-oidc"
     }
@@ -25,7 +25,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 resource "aws_iam_role" "github_actions" {
   count = var.enable_github_oidc ? 1 : 0
 
-  name = "${var.project_name}-github-actions-role"
+  name = "${var.project_name}-github-actions-role"  # Shared across environments
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -49,7 +49,7 @@ resource "aws_iam_role" "github_actions" {
   })
 
   tags = merge(
-    var.tags,
+    local.common_tags,
     {
       Name = "${var.project_name}-github-actions"
     }
@@ -60,7 +60,7 @@ resource "aws_iam_role" "github_actions" {
 resource "aws_iam_role_policy" "github_actions" {
   count = var.enable_github_oidc ? 1 : 0
 
-  name = "${var.project_name}-github-actions-terraform-policy"
+  name = "${var.project_name}-github-actions-terraform-policy"  # Shared across environments
   role = aws_iam_role.github_actions[0].id
 
   policy = jsonencode({
@@ -118,7 +118,7 @@ resource "aws_iam_role_policy" "github_actions" {
         Resource = [
           aws_lambda_function.data_sync.arn,
           aws_lambda_function.analytics.arn,
-          "arn:aws:lambda:${var.aws_region}:*:function:${var.project_name}-*"
+          "arn:aws:lambda:${var.aws_region}:*:function:${var.project_name}-*-*"  # Support environment-specific functions
         ]
       },
       # IAM Permissions (for Lambda roles and policies)
@@ -146,7 +146,7 @@ resource "aws_iam_role_policy" "github_actions" {
           aws_iam_role.data_sync_lambda.arn,
           aws_iam_role.analytics_lambda.arn,
           aws_iam_role.s3_notifications.arn,
-          "arn:aws:iam::*:role/${var.project_name}-*"
+          "arn:aws:iam::*:role/${var.project_name}-*-*"  # Support environment-specific roles
         ]
       },
       # EventBridge Permissions
@@ -165,7 +165,7 @@ resource "aws_iam_role_policy" "github_actions" {
           "events:ListTagsForResource"
         ]
         Resource = [
-          "arn:aws:events:${var.aws_region}:*:rule/${var.project_name}-*"
+          "arn:aws:events:${var.aws_region}:*:rule/${var.project_name}-*-*"  # Support environment-specific rules
         ]
       },
       # SQS Permissions
@@ -205,7 +205,7 @@ resource "aws_iam_role_policy" "github_actions" {
         Resource = [
           aws_cloudwatch_log_group.data_sync.arn,
           aws_cloudwatch_log_group.analytics.arn,
-          "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${var.project_name}-*"
+          "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${var.project_name}-*-*"  # Support environment-specific log groups
         ]
       },
       # DynamoDB Permissions (for Terraform state locking)

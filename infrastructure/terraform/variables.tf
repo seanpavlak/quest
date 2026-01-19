@@ -41,11 +41,10 @@ variable "schedule_expression" {
 }
 
 variable "tags" {
-  description = "Tags to apply to all resources"
+  description = "Tags to apply to all resources (Environment will be set automatically from environment variable)"
   type        = map(string)
   default = {
-    Project     = "RearcDataQuest"
-    Environment = "dev"
+    Project = "RearcDataQuest"
   }
 }
 
@@ -98,4 +97,15 @@ variable "enable_github_oidc" {
   description = "Enable GitHub OIDC provider and IAM role for CI/CD"
   type        = bool
   default     = true
+}
+
+variable "environment" {
+  description = "Environment name (dev, prod, staging, etc.)"
+  type        = string
+  default     = "dev"
+  
+  validation {
+    condition     = contains(["dev", "prod", "staging"], var.environment)
+    error_message = "Environment must be one of: dev, prod, staging"
+  }
 }

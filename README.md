@@ -136,21 +136,22 @@ All required submission items are completed and documented below:
 - **Deployment Guide**: [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
 - **Infrastructure Outputs**: [`config/outputs.json`](config/outputs.json)
 
-#### 📊 Current Infrastructure Status
+#### 📊 Infrastructure Status
 
-Infrastructure is automatically deployed via CI/CD on every merge to `master`. The `config/outputs.json` file is automatically updated after each deployment to keep it in sync with the actual AWS resources.
+Infrastructure is deployed to **dev** and **prod** environments:
 
-**Current Deployment** (from [`config/outputs.json`](config/outputs.json)):
-- **S3 Bucket**: `rearc-data-pipeline-data-08041c62`
-  - **URL**: https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/
-- **Data Sync Lambda**: `rearc-data-pipeline-data-sync` (runs daily at 2 AM UTC)
-- **Analytics Lambda**: `rearc-data-pipeline-analytics` (triggered by S3 events)
-- **SQS Queue**: `rearc-data-pipeline-s3-notifications`
-- **CloudWatch Logs**: Available for both Lambda functions
+- **Dev**: Auto-deploys on merge to `master` via CI/CD
+- **Prod**: Manual deployment only (via GitHub Actions workflow dispatch)
+
+**Dev Environment** (from [`config/outputs.json`](config/outputs.json)):
+- See `config/outputs.json` for current dev infrastructure outputs (S3 bucket, Lambda ARNs, etc.)
+
+**Prod Environment** (from [`config/outputs-prod.json`](config/outputs-prod.json)):
+- See `config/outputs-prod.json` for current prod infrastructure outputs
 
 > **Note**: Infrastructure outputs are automatically refreshed:
-> - After each CI/CD deployment (on merge to master)
-> - Daily via scheduled workflow (at 1 AM UTC)
+> - After each CI/CD deployment (dev on merge, prod on manual deployment)
+> - Daily via scheduled workflow (at 1 AM UTC) - syncs both dev and prod
 > - On manual trigger via GitHub Actions
 > - To manually refresh outputs, run `./scripts/refresh_outputs.sh`
 

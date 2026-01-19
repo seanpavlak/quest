@@ -3,7 +3,7 @@
 
 resource "aws_iam_role_policy" "analytics_lambda_dlq" {
   count = var.enable_dlq ? 1 : 0
-  name  = "${var.project_name}-analytics-lambda-dlq-policy"
+  name  = "${local.resource_prefix}-analytics-lambda-dlq-policy"
   role  = aws_iam_role.analytics_lambda.id
 
   policy = jsonencode({

@@ -2,7 +2,7 @@
 
 # Alarm for Data Sync Lambda errors
 resource "aws_cloudwatch_metric_alarm" "data_sync_errors" {
-  alarm_name          = "${var.project_name}-data-sync-errors"
+  alarm_name          = "${local.resource_prefix}-data-sync-errors"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "Errors"
@@ -17,12 +17,12 @@ resource "aws_cloudwatch_metric_alarm" "data_sync_errors" {
     FunctionName = aws_lambda_function.data_sync.function_name
   }
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 # Alarm for Analytics Lambda errors
 resource "aws_cloudwatch_metric_alarm" "analytics_errors" {
-  alarm_name          = "${var.project_name}-analytics-errors"
+  alarm_name          = "${local.resource_prefix}-analytics-errors"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "Errors"
@@ -37,12 +37,12 @@ resource "aws_cloudwatch_metric_alarm" "analytics_errors" {
     FunctionName = aws_lambda_function.analytics.function_name
   }
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 # Alarm for SQS queue depth (if messages are backing up)
 resource "aws_cloudwatch_metric_alarm" "sqs_queue_depth" {
-  alarm_name          = "${var.project_name}-sqs-queue-depth"
+  alarm_name          = "${local.resource_prefix}-sqs-queue-depth"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 2
   metric_name         = "ApproximateNumberOfMessagesVisible"
@@ -57,14 +57,14 @@ resource "aws_cloudwatch_metric_alarm" "sqs_queue_depth" {
     QueueName = aws_sqs_queue.s3_notifications.name
   }
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 # Alarm for DLQ messages (if enabled)
 resource "aws_cloudwatch_metric_alarm" "dlq_messages" {
   count = var.enable_dlq ? 1 : 0
 
-  alarm_name          = "${var.project_name}-dlq-messages"
+  alarm_name          = "${local.resource_prefix}-dlq-messages"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "ApproximateNumberOfMessagesVisible"
@@ -79,5 +79,5 @@ resource "aws_cloudwatch_metric_alarm" "dlq_messages" {
     QueueName = aws_sqs_queue.analytics_dlq[0].name
   }
 
-  tags = var.tags
+  tags = local.common_tags
 }
