@@ -29,3 +29,5 @@ dev = [
 where = ["."]
 include = ["src*"]
 
+[project.scripts]
+rearc = "rearc.cli:main"

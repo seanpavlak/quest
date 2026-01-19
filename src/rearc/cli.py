@@ -5,7 +5,6 @@ Command-line interface for the Rearc Data Quest pipeline.
 import argparse
 import logging
 import sys
-from typing import NoReturn
 
 from .data_sync import sync_bls_data, fetch_and_save_population_data
 
@@ -25,6 +24,8 @@ def main() -> None:
     bls_parser = subparsers.add_parser('sync-bls', help='Sync BLS data to S3')
     bls_parser.add_argument('bucket', help='S3 bucket name')
     bls_parser.add_argument('--region', default='us-east-1', help='AWS region')
+    bls_parser.add_argument('--archive-bucket', help='Archive bucket name (optional, defaults to same bucket with archive prefix)')
+    bls_parser.add_argument('--archive-prefix', default='archive/', help='Archive prefix (default: archive/)')
     
     # Population fetch command
     pop_parser = subparsers.add_parser('fetch-population', help='Fetch population data and save to S3')
@@ -36,6 +37,8 @@ def main() -> None:
     all_parser = subparsers.add_parser('sync-all', help='Sync both BLS and population data')
     all_parser.add_argument('bucket', help='S3 bucket name')
     all_parser.add_argument('--region', default='us-east-1', help='AWS region')
+    all_parser.add_argument('--archive-bucket', help='Archive bucket name (optional, defaults to same bucket with archive prefix)')
+    all_parser.add_argument('--archive-prefix', default='archive/', help='Archive prefix (default: archive/)')
     
     args = parser.parse_args()
     
@@ -45,7 +48,12 @@ def main() -> None:
     
     try:
         if args.command == 'sync-bls':
-            success = sync_bls_data(args.bucket, args.region)
+            success = sync_bls_data(
+                args.bucket, 
+                args.region,
+                archive_bucket=getattr(args, 'archive_bucket', None),
+                archive_prefix=getattr(args, 'archive_prefix', 'archive/')
+            )
             if not success:
                 logger.error("BLS sync failed")
                 sys.exit(1)
@@ -55,7 +63,12 @@ def main() -> None:
                 logger.error("Population data fetch failed")
                 sys.exit(1)
         elif args.command == 'sync-all':
-            bls_success = sync_bls_data(args.bucket, args.region)
+            bls_success = sync_bls_data(
+                args.bucket, 
+                args.region,
+                archive_bucket=getattr(args, 'archive_bucket', None),
+                archive_prefix=getattr(args, 'archive_prefix', 'archive/')
+            )
             pop_success = fetch_and_save_population_data(args.bucket, args.region)
             if not (bls_success and pop_success):
                 logger.error("One or more sync operations failed")
