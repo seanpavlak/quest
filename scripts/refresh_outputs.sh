@@ -71,6 +71,8 @@ try:
         'sqs_queue_arn': values.get('sqs_queue_arn', ''),
         'cloudwatch_log_group_data_sync': values.get('cloudwatch_log_group_data_sync', ''),
         'cloudwatch_log_group_analytics': values.get('cloudwatch_log_group_analytics', ''),
+        'github_actions_role_arn': values.get('github_actions_role_arn', ''),
+        'github_oidc_provider_arn': values.get('github_oidc_provider_arn', ''),
     }
     
     # Add example URLs if bucket name exists

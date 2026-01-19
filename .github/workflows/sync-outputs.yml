@@ -1,0 +1,111 @@
+name: Sync Infrastructure Outputs
+
+# This workflow runs periodically to ensure outputs.json stays in sync with actual infrastructure
+# It also runs when manually triggered or when infrastructure changes are detected
+
+on:
+  schedule:
+    # Run daily at 1 AM UTC (before the daily Lambda sync at 2 AM UTC)
+    - cron: '0 1 * * *'
+  workflow_dispatch:  # Allows manual triggering
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'infrastructure/terraform/**'
+
+env:
+  AWS_REGION: us-east-1
+  TERRAFORM_VERSION: 1.6.0
+
+jobs:
+  sync-outputs:
+    name: Sync Infrastructure Outputs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-Sync-Outputs
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: infrastructure/terraform
+        run: terraform init
+
+      - name: Refresh Terraform State
+        working-directory: infrastructure/terraform
+        run: terraform refresh -auto-approve
+
+      - name: Update outputs.json
+        run: |
+          cd infrastructure/terraform
+          terraform output -json > ../../config/outputs.json.tmp
+          
+          python3 << 'EOF'
+          import json
+          
+          with open('config/outputs.json.tmp', 'r') as f:
+              data = json.load(f)
+          
+          values = {k: v['value'] for k, v in data.items() if 'value' in v}
+          bucket_name = values.get('s3_bucket_name', '')
+          region = 'us-east-1'
+          
+          output = {
+              's3_bucket_name': bucket_name,
+              's3_bucket_arn': values.get('s3_bucket_arn', ''),
+              's3_bucket_url': f'https://{bucket_name}.s3.{region}.amazonaws.com' if bucket_name else '',
+              's3_bucket_region': region,
+              'data_sync_lambda_function_name': values.get('data_sync_lambda_function_name', ''),
+              'data_sync_lambda_arn': values.get('data_sync_lambda_arn', ''),
+              'analytics_lambda_function_name': values.get('analytics_lambda_function_name', ''),
+              'analytics_lambda_arn': values.get('analytics_lambda_arn', ''),
+              'sqs_queue_url': values.get('sqs_queue_url', ''),
+              'sqs_queue_arn': values.get('sqs_queue_arn', ''),
+              'cloudwatch_log_group_data_sync': values.get('cloudwatch_log_group_data_sync', ''),
+              'cloudwatch_log_group_analytics': values.get('cloudwatch_log_group_analytics', ''),
+              'github_actions_role_arn': values.get('github_actions_role_arn', ''),
+              'github_oidc_provider_arn': values.get('github_oidc_provider_arn', ''),
+          }
+          
+          if bucket_name:
+              output['example_urls'] = {
+                  'bucket_root': f'https://{bucket_name}.s3.{region}.amazonaws.com/',
+                  'bls_main_file': f'https://{bucket_name}.s3.{region}.amazonaws.com/pr.data.0.Current',
+                  'population_data_pattern': f'https://{bucket_name}.s3.{region}.amazonaws.com/population_data_*.json'
+              }
+          
+          with open('config/outputs.json', 'w') as f:
+              json.dump(output, f, indent=2)
+          EOF
+          
+          rm config/outputs.json.tmp
+
+      - name: Commit and push outputs.json
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git pull --rebase || true
+          git add config/outputs.json
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: sync infrastructure outputs [skip ci]"
+            git push
+            echo "✅ Updated outputs.json with current infrastructure state"
+          else
+            echo "ℹ️ outputs.json already up to date"
+          fi

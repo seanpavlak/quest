@@ -8,5 +8,7 @@ numpy>=1.24.0
 jupyter>=1.0.0
 ipykernel>=6.0.0
 moto>=4.0.0  # For S3 mocking in tests
-pytest>=7.0.0  # Optional: for pytest-style tests
+pytest>=7.0.0  # Test framework
+pytest-xdist>=3.0.0  # Parallel test execution
+pytest-cov>=4.0.0  # Coverage reporting
 

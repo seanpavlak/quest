@@ -1,0 +1,272 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'infrastructure/**'
+      - 'src/**'
+      - 'tests/**'
+      - '.github/workflows/ci-cd.yml'
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'infrastructure/**'
+      - 'src/**'
+      - 'tests/**'
+      - '.github/workflows/ci-cd.yml'
+
+env:
+  AWS_REGION: us-east-1
+  TERRAFORM_VERSION: 1.6.0
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests with pytest (parallel)
+        run: |
+          pytest tests/ -v --tb=short -n auto --cov=src --cov-branch --cov-report=xml --cov-report=term-missing --junitxml=junit.xml -o junit_family=legacy
+        continue-on-error: false
+
+      - name: Run integration tests
+        run: |
+          python tests/test_local.py
+        continue-on-error: false
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All tests completed" >> $GITHUB_STEP_SUMMARY
+
+  plan:
+    name: Terraform Plan (PR Review)
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-Terraform-Plan
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: infrastructure/terraform
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: infrastructure/terraform
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        working-directory: infrastructure/terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: infrastructure/terraform
+        run: terraform plan -no-color -out=tfplan
+
+      - name: Comment PR with Plan
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Plan 📖
+            \`\`\`${process.env.PLAN}\`\`\`
+            *Action: Plan run on PR by @${{ github.actor }}*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  deploy:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-Terraform-Deploy
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run Tests Before Deploy
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pytest tests/ -v --tb=short -n auto --cov=src --cov-branch --cov-report=xml --cov-report=term-missing --junitxml=junit.xml -o junit_family=legacy
+          python tests/test_local.py
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Update Lambda Dependencies
+        run: |
+          echo "=== Updating Lambda Dependencies ==="
+          
+          # Data Sync Lambda
+          cd infrastructure/lambda/data_sync
+          rm -rf boto3 botocore requests *.dist-info __pycache__ bin rearc 2>/dev/null || true
+          pip install -r requirements.txt -t . --quiet
+          mkdir -p rearc
+          cp -r ../../../src/rearc/* rearc/
+          
+          # Analytics Lambda
+          cd ../analytics
+          rm -rf boto3 botocore pandas numpy pytz tzdata dateutil jmespath s3transfer urllib3 rearc *.dist-info __pycache__ bin 2>/dev/null || true
+          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir boto3 --quiet
+          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir "numpy<2.0" --quiet
+          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir pandas --quiet
+          mkdir -p rearc
+          cp -r ../../../src/rearc/* rearc/
+
+      - name: Terraform Init
+        working-directory: infrastructure/terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: infrastructure/terraform
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: infrastructure/terraform
+        run: terraform apply -auto-approve tfplan
+
+      - name: Refresh Outputs
+        run: |
+          cd infrastructure/terraform
+          terraform output -json > ../../config/outputs.json.tmp
+          
+          python3 << 'EOF'
+          import json
+          import os
+          
+          with open('config/outputs.json.tmp', 'r') as f:
+              data = json.load(f)
+          
+          values = {k: v['value'] for k, v in data.items() if 'value' in v}
+          bucket_name = values.get('s3_bucket_name', '')
+          region = 'us-east-1'
+          
+          output = {
+              's3_bucket_name': bucket_name,
+              's3_bucket_arn': values.get('s3_bucket_arn', ''),
+              's3_bucket_url': f'https://{bucket_name}.s3.{region}.amazonaws.com' if bucket_name else '',
+              's3_bucket_region': region,
+              'data_sync_lambda_function_name': values.get('data_sync_lambda_function_name', ''),
+              'data_sync_lambda_arn': values.get('data_sync_lambda_arn', ''),
+              'analytics_lambda_function_name': values.get('analytics_lambda_function_name', ''),
+              'analytics_lambda_arn': values.get('analytics_lambda_arn', ''),
+              'sqs_queue_url': values.get('sqs_queue_url', ''),
+              'sqs_queue_arn': values.get('sqs_queue_arn', ''),
+              'cloudwatch_log_group_data_sync': values.get('cloudwatch_log_group_data_sync', ''),
+              'cloudwatch_log_group_analytics': values.get('cloudwatch_log_group_analytics', ''),
+              'github_actions_role_arn': values.get('github_actions_role_arn', ''),
+              'github_oidc_provider_arn': values.get('github_oidc_provider_arn', ''),
+          }
+          
+          if bucket_name:
+              output['example_urls'] = {
+                  'bucket_root': f'https://{bucket_name}.s3.{region}.amazonaws.com/',
+                  'bls_main_file': f'https://{bucket_name}.s3.{region}.amazonaws.com/pr.data.0.Current',
+                  'population_data_pattern': f'https://{bucket_name}.s3.{region}.amazonaws.com/population_data_*.json'
+              }
+          
+          with open('config/outputs.json', 'w') as f:
+              json.dump(output, f, indent=2)
+          EOF
+          
+          rm config/outputs.json.tmp
+
+      - name: Commit and push outputs.json
+        if: always()
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git pull --rebase || true
+          git add config/outputs.json
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: update infrastructure outputs [skip ci]"
+            git push
+          else
+            echo "No changes to outputs.json"
+          fi

@@ -33,7 +33,7 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 outputs_raw.json
-config/outputs.json
+# config/outputs.json - Track this file to keep it in sync with infrastructure
 
 # Lambda deployment packages
 *.zip

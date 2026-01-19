@@ -87,3 +87,15 @@ variable "s3_lifecycle_enabled" {
   type        = bool
   default     = true
 }
+
+variable "github_repository" {
+  description = "GitHub repository in format owner/repo (e.g., seanpavlak/quest)"
+  type        = string
+  default     = "seanpavlak/quest"
+}
+
+variable "enable_github_oidc" {
+  description = "Enable GitHub OIDC provider and IAM role for CI/CD"
+  type        = bool
+  default     = true
+}

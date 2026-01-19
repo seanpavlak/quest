@@ -57,3 +57,13 @@ output "analytics_dlq_arn" {
   description = "ARN of the Analytics Lambda Dead Letter Queue"
   value       = var.enable_dlq ? aws_sqs_queue.analytics_dlq[0].arn : null
 }
+
+output "github_actions_role_arn" {
+  description = "ARN of the IAM role for GitHub Actions OIDC"
+  value       = var.enable_github_oidc ? aws_iam_role.github_actions[0].arn : null
+}
+
+output "github_oidc_provider_arn" {
+  description = "ARN of the GitHub OIDC identity provider"
+  value       = var.enable_github_oidc ? aws_iam_openid_connect_provider.github[0].arn : null
+}
