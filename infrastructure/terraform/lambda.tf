@@ -35,7 +35,7 @@ resource "aws_lambda_function" "data_sync" {
   role             = aws_iam_role.data_sync_lambda.arn
   handler          = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.data_sync_zip.output_base64sha256
-  runtime          = "python3.11"
+  runtime          = "python3.12"
   timeout          = var.lambda_timeout
   memory_size      = var.lambda_memory
 
@@ -71,7 +71,7 @@ resource "aws_lambda_function" "analytics" {
   role             = aws_iam_role.analytics_lambda.arn
   handler          = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.analytics_zip.output_base64sha256
-  runtime          = "python3.11"
+  runtime          = "python3.12"
   timeout          = var.lambda_timeout
   memory_size      = var.lambda_memory
 

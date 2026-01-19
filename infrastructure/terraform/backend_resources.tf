@@ -45,6 +45,19 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
   restrict_public_buckets = true
 }
 
+# S3 Bucket Ownership Controls for Terraform state bucket
+resource "aws_s3_bucket_ownership_controls" "terraform_state" {
+  bucket = aws_s3_bucket.terraform_state.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+
+  depends_on = [
+    aws_s3_bucket_public_access_block.terraform_state
+  ]
+}
+
 # S3 Bucket Lifecycle Configuration (optional - keeps old state versions)
 resource "aws_s3_bucket_lifecycle_configuration" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id

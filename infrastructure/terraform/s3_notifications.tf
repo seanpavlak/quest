@@ -1,4 +1,5 @@
-resource "aws_s3_bucket_notification" "json_file_notification" {
+# Modern S3 bucket notification configuration (replaces deprecated aws_s3_bucket_notification)
+resource "aws_s3_bucket_notification_configuration" "json_file_notification" {
   bucket = aws_s3_bucket.data_bucket.id
 
   queue {
@@ -9,7 +10,8 @@ resource "aws_s3_bucket_notification" "json_file_notification" {
   }
 
   depends_on = [
-    aws_sqs_queue_policy.s3_notifications
+    aws_sqs_queue_policy.s3_notifications,
+    aws_s3_bucket_ownership_controls.data_bucket
   ]
 }
 

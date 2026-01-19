@@ -27,6 +27,19 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "data_bucket" {
   }
 }
 
+# S3 Bucket Ownership Controls (required for modern S3 buckets)
+resource "aws_s3_bucket_ownership_controls" "data_bucket" {
+  bucket = aws_s3_bucket.data_bucket.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"  # Disables ACLs, best security practice
+  }
+
+  depends_on = [
+    aws_s3_bucket_public_access_block.data_bucket
+  ]
+}
+
 # Public access block - configurable via variable
 resource "aws_s3_bucket_public_access_block" "data_bucket" {
   bucket = aws_s3_bucket.data_bucket.id
@@ -121,3 +134,114 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "lambda_packages" 
   }
 }
 
+# S3 Bucket Ownership Controls for Lambda packages bucket
+resource "aws_s3_bucket_ownership_controls" "lambda_packages" {
+  bucket = aws_s3_bucket.lambda_packages.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+
+  depends_on = [
+    aws_s3_bucket_public_access_block.lambda_packages
+  ]
+}
+
+# S3 Bucket Public Access Block for Lambda packages
+resource "aws_s3_bucket_public_access_block" "lambda_packages" {
+  bucket = aws_s3_bucket.lambda_packages.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# S3 Bucket for Access Logs
+resource "aws_s3_bucket" "access_logs" {
+  bucket        = "${local.resource_prefix}-access-logs-${random_id.bucket_suffix.hex}"
+  force_destroy = var.environment == "dev" ? true : false
+
+  tags = merge(
+    local.common_tags,
+    {
+      Purpose = "AccessLogs"
+    }
+  )
+}
+
+resource "aws_s3_bucket_versioning" "access_logs" {
+  bucket = aws_s3_bucket.access_logs.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "access_logs" {
+  bucket = aws_s3_bucket.access_logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "access_logs" {
+  bucket = aws_s3_bucket.access_logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "access_logs" {
+  bucket = aws_s3_bucket.access_logs.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+
+  depends_on = [
+    aws_s3_bucket_public_access_block.access_logs
+  ]
+}
+
+# S3 Lifecycle Configuration for access logs (auto-delete old logs after 90 days)
+resource "aws_s3_bucket_lifecycle_configuration" "access_logs" {
+  bucket = aws_s3_bucket.access_logs.id
+
+  rule {
+    id     = "delete_old_access_logs"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      days = 90  # Keep access logs for 90 days
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
+# S3 Bucket Access Logging for audit trails
+resource "aws_s3_bucket_logging" "data_bucket" {
+  bucket = aws_s3_bucket.data_bucket.id
+
+  target_bucket = aws_s3_bucket.access_logs.id
+  target_prefix = "data-bucket/"
+
+  depends_on = [
+    aws_s3_bucket_ownership_controls.access_logs,
+    aws_s3_bucket_ownership_controls.data_bucket
+  ]
+}
+
+# S3 Intelligent-Tiering for production environment (cost optimization)
+resource "aws_s3_bucket_intelligent_tiering_configuration" "data_bucket" {
+  count  = var.environment == "prod" ? 1 : 0
