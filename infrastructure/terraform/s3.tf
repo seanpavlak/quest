@@ -245,3 +245,20 @@ resource "aws_s3_bucket_logging" "data_bucket" {
 # S3 Intelligent-Tiering for production environment (cost optimization)
 resource "aws_s3_bucket_intelligent_tiering_configuration" "data_bucket" {
   count  = var.environment == "prod" ? 1 : 0
+  bucket = aws_s3_bucket.data_bucket.id
+  name   = "EntireBucket"
+
+  filter {
+    prefix = ""
+  }
+
+  tiering {
+    access_tier = "ARCHIVE_ACCESS"
+    days        = 90
+  }
+
+  tiering {
+    access_tier = "DEEP_ARCHIVE_ACCESS"
+    days        = 180
+  }
+}

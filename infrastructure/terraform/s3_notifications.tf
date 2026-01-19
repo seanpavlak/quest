@@ -1,5 +1,5 @@
-# Modern S3 bucket notification configuration (replaces deprecated aws_s3_bucket_notification)
-resource "aws_s3_bucket_notification_configuration" "json_file_notification" {
+# S3 bucket notification configuration
+resource "aws_s3_bucket_notification" "json_file_notification" {
   bucket = aws_s3_bucket.data_bucket.id
 
   queue {

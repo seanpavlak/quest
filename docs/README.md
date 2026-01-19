@@ -23,11 +23,8 @@ rearc/
 │       └── analytics/
 ├── tests/                  # Test files
 ├── scripts/                # Utility scripts
-│   ├── test_comprehensive.sh
-│   ├── test_e2e.sh
-│   ├── test_local_simple.py
-│   ├── clean_and_redeploy.sh
-│   └── refresh_outputs.sh  # Refresh infrastructure outputs
+│   ├── clean_and_redeploy.sh   # Full clean deployment (includes testing)
+│   └── refresh_outputs.sh      # Refresh infrastructure outputs
 ├── docs/                   # Documentation
 │   ├── DEPLOYMENT_GUIDE.md # Complete deployment guide
 │   └── README.md

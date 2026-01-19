@@ -49,9 +49,9 @@ echo "=== Step 3: Reinstalling Lambda Dependencies ==="
 echo ""
 echo "Installing Analytics Lambda dependencies (Linux-compatible)..."
 cd ../analytics
-pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir boto3 2>&1 | tail -2
-pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir "numpy<2.0" 2>&1 | tail -2
-pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir pandas 2>&1 | tail -2
+pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.12 --only-binary=:all: --no-cache-dir boto3 2>&1 | tail -2
+pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.12 --only-binary=:all: --no-cache-dir "numpy<2.0" 2>&1 | tail -2
+pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.12 --only-binary=:all: --no-cache-dir pandas 2>&1 | tail -2
 
 echo "Copying rearc package..."
 mkdir -p rearc

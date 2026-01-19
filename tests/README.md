@@ -27,11 +27,6 @@
 
 ## Running Tests
 
-### Simple Test (Just Fetch Data)
-```bash
-python scripts/test_local_simple.py
-```
-
 ### Full Test Suite
 ```bash
 python tests/test_local.py
