@@ -1,7 +1,7 @@
 {
-  "s3_bucket_name": "rearc-data-pipeline-data-08041c62",
-  "s3_bucket_arn": "arn:aws:s3:::rearc-data-pipeline-data-08041c62",
-  "s3_bucket_url": "https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com",
+  "s3_bucket_name": "rearc-data-pipeline-data-b5e99b97",
+  "s3_bucket_arn": "arn:aws:s3:::rearc-data-pipeline-data-b5e99b97",
+  "s3_bucket_url": "https://rearc-data-pipeline-data-b5e99b97.s3.us-east-1.amazonaws.com",
   "s3_bucket_region": "us-east-1",
   "data_sync_lambda_function_name": "rearc-data-pipeline-data-sync",
   "data_sync_lambda_arn": "arn:aws:lambda:us-east-1:851725435783:function:rearc-data-pipeline-data-sync",
@@ -11,9 +11,11 @@
   "sqs_queue_arn": "arn:aws:sqs:us-east-1:851725435783:rearc-data-pipeline-s3-notifications",
   "cloudwatch_log_group_data_sync": "/aws/lambda/rearc-data-pipeline-data-sync",
   "cloudwatch_log_group_analytics": "/aws/lambda/rearc-data-pipeline-analytics",
+  "github_actions_role_arn": "arn:aws:iam::851725435783:role/rearc-data-pipeline-github-actions-role",
+  "github_oidc_provider_arn": "arn:aws:iam::851725435783:oidc-provider/token.actions.githubusercontent.com",
   "example_urls": {
-    "bucket_root": "https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/",
-    "bls_main_file": "https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/pr.data.0.Current",
-    "population_data_pattern": "https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/population_data_*.json"
+    "bucket_root": "https://rearc-data-pipeline-data-b5e99b97.s3.us-east-1.amazonaws.com/",
+    "bls_main_file": "https://rearc-data-pipeline-data-b5e99b97.s3.us-east-1.amazonaws.com/pr.data.0.Current",
+    "population_data_pattern": "https://rearc-data-pipeline-data-b5e99b97.s3.us-east-1.amazonaws.com/population_data_*.json"
   }
 }
