@@ -212,32 +212,28 @@ resource "aws_iam_role_policy" "github_actions" {
       {
         Effect = "Allow"
         Action = [
-          "dynamodb:CreateTable",
-          "dynamodb:DeleteTable",
           "dynamodb:DescribeTable",
           "dynamodb:GetItem",
           "dynamodb:PutItem",
           "dynamodb:DeleteItem",
-          "dynamodb:ListTables",
-          "dynamodb:TagResource",
-          "dynamodb:UntagResource",
-          "dynamodb:ListTagsOfResource"
+          "dynamodb:ListTables"
         ]
         Resource = [
-          "arn:aws:dynamodb:${var.aws_region}:*:table/terraform-state-lock*"
+          aws_dynamodb_table.terraform_state_lock.arn
         ]
       },
-      # Terraform state permissions (generic)
+      # Terraform state S3 bucket permissions
       {
         Effect = "Allow"
         Action = [
           "s3:GetObject",
           "s3:PutObject",
-          "s3:ListBucket"
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
         ]
         Resource = [
-          "arn:aws:s3:::terraform-state-*",
-          "arn:aws:s3:::terraform-state-*/*"
+          aws_s3_bucket.terraform_state.arn,
+          "${aws_s3_bucket.terraform_state.arn}/*"
         ]
       }
     ]

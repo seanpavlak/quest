@@ -13,6 +13,10 @@
   "cloudwatch_log_group_analytics": "/aws/lambda/rearc-data-pipeline-analytics",
   "github_actions_role_arn": "arn:aws:iam::851725435783:role/rearc-data-pipeline-github-actions-role",
   "github_oidc_provider_arn": "arn:aws:iam::851725435783:oidc-provider/token.actions.githubusercontent.com",
+  "terraform_state_bucket_name": "rearc-data-pipeline-terraform-state-05e6e915",
+  "terraform_state_bucket_arn": "arn:aws:s3:::rearc-data-pipeline-terraform-state-05e6e915",
+  "terraform_state_lock_table_name": "rearc-data-pipeline-terraform-state-lock",
+  "terraform_state_lock_table_arn": "arn:aws:dynamodb:us-east-1:851725435783:table/rearc-data-pipeline-terraform-state-lock",
   "example_urls": {
     "bucket_root": "https://rearc-data-pipeline-data-b5e99b97.s3.us-east-1.amazonaws.com/",
     "bls_main_file": "https://rearc-data-pipeline-data-b5e99b97.s3.us-east-1.amazonaws.com/pr.data.0.Current",

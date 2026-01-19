@@ -73,6 +73,10 @@ try:
         'cloudwatch_log_group_analytics': values.get('cloudwatch_log_group_analytics', ''),
         'github_actions_role_arn': values.get('github_actions_role_arn', ''),
         'github_oidc_provider_arn': values.get('github_oidc_provider_arn', ''),
+        'terraform_state_bucket_name': values.get('terraform_state_bucket_name', ''),
+        'terraform_state_bucket_arn': values.get('terraform_state_bucket_arn', ''),
+        'terraform_state_lock_table_name': values.get('terraform_state_lock_table_name', ''),
+        'terraform_state_lock_table_arn': values.get('terraform_state_lock_table_arn', ''),
     }
     
     # Add example URLs if bucket name exists
