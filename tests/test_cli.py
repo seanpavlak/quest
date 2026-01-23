@@ -28,7 +28,7 @@ class TestCLI:
         except SystemExit:
             pass  # Expected - argparse calls sys.exit
         
-        mock_sync.assert_called_once_with('test-bucket', 'us-east-1')
+        mock_sync.assert_called_once_with('test-bucket', 'us-east-1', archive_bucket=None, archive_prefix='archive/')
     
     @patch('rearc.cli.sync_bls_data')
     @patch('sys.argv', ['cli.py', 'sync-bls', 'test-bucket', '--region', 'us-west-2'])
@@ -41,7 +41,7 @@ class TestCLI:
         except SystemExit:
             pass
         
-        mock_sync.assert_called_once_with('test-bucket', 'us-west-2')
+        mock_sync.assert_called_once_with('test-bucket', 'us-west-2', archive_bucket=None, archive_prefix='archive/')
     
     @patch('rearc.cli.fetch_and_save_population_data')
     @patch('sys.argv', ['cli.py', 'fetch-population', 'test-bucket'])
@@ -86,7 +86,7 @@ class TestCLI:
         except SystemExit:
             pass
         
-        mock_sync_bls.assert_called_once_with('test-bucket', 'us-east-1')
+        mock_sync_bls.assert_called_once_with('test-bucket', 'us-east-1', archive_bucket=None, archive_prefix='archive/')
         mock_fetch_pop.assert_called_once_with('test-bucket', 'us-east-1')
     
     @patch('sys.argv', ['cli.py'])
