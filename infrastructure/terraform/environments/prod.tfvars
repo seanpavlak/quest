@@ -1,6 +1,9 @@
 # Production Environment Configuration
 environment = "prod"
 
+# GitHub repo for OIDC trust (must match the repo running the workflow)
+github_repository = "seanpavlak/quest"
+
 # Production-specific settings
 lambda_timeout = 300
 lambda_memory  = 512
