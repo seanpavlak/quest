@@ -84,7 +84,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'pull_request'
-    
+    permissions:
+      id-token: write      # Required for OIDC auth with AWS
+      contents: read
+      pull-requests: write # For commenting on PR with plan output
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -151,7 +154,9 @@ jobs:
     if: |
       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) ||
       github.event_name == 'workflow_dispatch'
-    
+    permissions:
+      id-token: write   # Required for OIDC auth with AWS
+      contents: write   # For checkout and git push of outputs.json
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -293,7 +298,9 @@ jobs:
       name: prod
     # Prod deployments are always manual via workflow_dispatch
     if: github.event_name == 'workflow_dispatch' && (github.event.inputs.environment == 'prod' || github.event.inputs.environment == '')
-    
+    permissions:
+      id-token: write   # Required for OIDC auth with AWS
+      contents: write   # For checkout and git push of outputs-prod.json
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
