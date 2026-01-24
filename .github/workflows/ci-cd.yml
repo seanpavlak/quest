@@ -92,18 +92,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get OIDC token
-        uses: actions/id-token-action@v2
-        with:
-          audience: sts.amazonaws.com
-        id: idtoken
-
       - name: Assume AWS role via OIDC
         run: |
+          # Request OIDC token from GitHub (audience must match trust policy)
+          URL="$ACTIONS_ID_TOKEN_REQUEST_URL"
+          [[ "$URL" == *"?"* ]] && URL="${URL}&audience=sts.amazonaws.com" || URL="${URL}?audience=sts.amazonaws.com"
+          OIDC_TOKEN=$(curl -sSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$URL" | jq -r '.value')
+          # Assume role with web identity (no prior AWS creds needed)
           CREDS=$(aws sts assume-role-with-web-identity \
             --role-arn arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role \
             --role-session-name GitHubActions-Terraform-Plan \
-            --web-identity-token "${{ steps.idtoken.outputs.id-token }}" \
+            --web-identity-token "$OIDC_TOKEN" \
             --output json)
           echo "AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r '.Credentials.AccessKeyId')" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.Credentials.SecretAccessKey')" >> $GITHUB_ENV
