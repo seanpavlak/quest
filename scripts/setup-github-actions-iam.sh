@@ -45,10 +45,36 @@ sed -e "s/851725435783/${ACCOUNT_ID}/g" -e "s/us-east-1/${REGION}/g" "$POLICY_DO
 
 if aws iam get-policy --policy-arn "$POLICY_ARN" &>/dev/null; then
   echo "Updating existing policy GitHubActionsTerraformPolicy..."
-  aws iam create-policy-version \
+  # Try to create a new version; if we hit the 5-version limit, delete one non-default and retry
+  CREATE_ERR="$(mktemp)"
+  trap 'rm -f "$TMP_POLICY" "$CREATE_ERR"' EXIT
+  if ! aws iam create-policy-version \
     --policy-arn "$POLICY_ARN" \
     --policy-document "file://${TMP_POLICY}" \
-    --set-as-default
+    --set-as-default 2>"$CREATE_ERR"; then
+    if grep -q "LimitExceeded" "$CREATE_ERR"; then
+      echo "Policy has 5 versions; deleting one non-default to make room..."
+      DEFAULT_VER="$(aws iam get-policy --policy-arn "$POLICY_ARN" --query 'Policy.DefaultVersionId' --output text)"
+      TO_DELETE="$(aws iam list-policy-versions --policy-arn "$POLICY_ARN" --query 'Versions[].VersionId' --output text | tr $' \t' '\n' | while read -r v; do
+        [[ -n "$v" && "$v" != "$DEFAULT_VER" ]] && { echo "$v"; break; }
+      done)"
+      if [[ -n "${TO_DELETE:-}" ]]; then
+        aws iam delete-policy-version --policy-arn "$POLICY_ARN" --version-id "$TO_DELETE"
+        echo "Retrying create-policy-version..."
+        aws iam create-policy-version \
+          --policy-arn "$POLICY_ARN" \
+          --policy-document "file://${TMP_POLICY}" \
+          --set-as-default
+      else
+        echo "Error: could not find a non-default policy version to delete." >&2
+        cat "$CREATE_ERR" >&2
+        exit 1
+      fi
+    else
+      cat "$CREATE_ERR" >&2
+      exit 1
+    fi
+  fi
 else
   echo "Creating policy GitHubActionsTerraformPolicy..."
   aws iam create-policy \
