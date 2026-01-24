@@ -92,12 +92,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
+      - name: Get OIDC token
+        uses: actions/id-token-action@v2
         with:
-          role-to-assume: arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-Terraform-Plan
+          audience: sts.amazonaws.com
+        id: idtoken
+
+      - name: Assume AWS role via OIDC
+        run: |
+          CREDS=$(aws sts assume-role-with-web-identity \
+            --role-arn arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role \
+            --role-session-name GitHubActions-Terraform-Plan \
+            --web-identity-token "${{ steps.idtoken.outputs.id-token }}" \
+            --output json)
+          echo "AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r '.Credentials.AccessKeyId')" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.Credentials.SecretAccessKey')" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r '.Credentials.SessionToken')" >> $GITHUB_ENV
+          echo "AWS_REGION=${{ env.AWS_REGION }}" >> $GITHUB_ENV
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
