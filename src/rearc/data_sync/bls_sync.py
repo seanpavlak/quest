@@ -6,6 +6,7 @@ Handles iterative directory traversal, change detection, and file management.
 """
 
 import logging
+import os
 from typing import Any, Set, Optional
 from collections import deque
 from urllib.parse import urljoin
@@ -164,9 +165,10 @@ def sync_bls_data(
         True if sync completed successfully, False otherwise
     """
     s3_client = boto3.client('s3', region_name=region)
+    base_url = os.environ.get('BLS_SOURCE_URL', BLS_BASE_URL)
     
     logger.info(f"Starting BLS data sync to bucket: {bucket_name}")
-    logger.info(f"Source URL: {BLS_BASE_URL}")
+    logger.info(f"Source URL: {base_url}")
     if archive_bucket:
         logger.info(f"Archive bucket: {archive_bucket}")
     else:
@@ -175,7 +177,7 @@ def sync_bls_data(
     try:
         # Step 1: Discover and sync all files iteratively
         logger.info("Discovering and syncing files from source...")
-        discovered_files = sync_directory_iterative(s3_client, bucket_name, BLS_BASE_URL)
+        discovered_files = sync_directory_iterative(s3_client, bucket_name, base_url)
         
         logger.info(f"Discovered {len(discovered_files)} files from source")
         

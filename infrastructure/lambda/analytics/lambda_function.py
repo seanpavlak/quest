@@ -73,10 +73,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if not bucket_name:
         logger.error("S3_BUCKET_NAME environment variable not set")
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': 'S3_BUCKET_NAME not configured'})
-        }
+        raise RuntimeError("S3_BUCKET_NAME not configured")
     
     results: Dict[str, Any] = {}
     
@@ -146,11 +143,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.error(f"Error parsing record: {str(e)}", exc_info=True)
-            results['error'] = f"Parse error: {str(e)}"
+            raise
         except Exception as e:
             logger.error(f"Error processing record: {str(e)}", exc_info=True)
-            results['error'] = str(e)
-    
+            raise
+
     return {
         'statusCode': 200,
         'body': json.dumps(results)

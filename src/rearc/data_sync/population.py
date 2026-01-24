@@ -6,6 +6,7 @@ Fetches population data from the DataUSA API and saves it to S3.
 
 import json
 import logging
+import os
 from datetime import datetime
 from typing import Optional, Dict, Any
 
@@ -114,8 +115,9 @@ def fetch_and_save_population_data(
     """
     logger.info(f"Starting population data fetch and save to bucket: {bucket_name}")
     
-    # Fetch data from API
-    data = fetch_population_data(DATAUSA_API_URL)
+    # Fetch data from API (use DATAUSA_API_URL env var if set, e.g. by Terraform for Lambda)
+    api_url = os.environ.get('DATAUSA_API_URL', DATAUSA_API_URL)
+    data = fetch_population_data(api_url)
     
     if data is None:
         logger.error("Failed to fetch population data")

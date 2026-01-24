@@ -225,6 +225,34 @@ resource "aws_s3_bucket_ownership_controls" "access_logs" {
   ]
 }
 
+# Bucket policy required for S3 server access logging when Object Ownership is
+# BucketOwnerEnforced (ACLs disabled). The logging service (logging.s3.amazonaws.com)
+# must be granted s3:PutObject via bucket policy; without it, log delivery fails silently.
+data "aws_caller_identity" "current" {}
+
+resource "aws_s3_bucket_policy" "access_logs" {
+  bucket = aws_s3_bucket.access_logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "S3ServerAccessLogsPolicy"
+        Effect    = "Allow"
+        Principal = { Service = "logging.s3.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.access_logs.arn}/*"
+        Condition = {
+          ArnLike      = { "aws:SourceArn" = aws_s3_bucket.data_bucket.arn }
+          StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id }
+        }
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_ownership_controls.access_logs]
+}
+
 # S3 Lifecycle Configuration for access logs (auto-delete old logs after 90 days)
 resource "aws_s3_bucket_lifecycle_configuration" "access_logs" {
   bucket = aws_s3_bucket.access_logs.id
@@ -254,7 +282,8 @@ resource "aws_s3_bucket_logging" "data_bucket" {
 
   depends_on = [
     aws_s3_bucket_ownership_controls.access_logs,
-    aws_s3_bucket_ownership_controls.data_bucket
+    aws_s3_bucket_ownership_controls.data_bucket,
+    aws_s3_bucket_policy.access_logs
   ]
 }
 

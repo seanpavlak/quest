@@ -238,47 +238,7 @@ jobs:
       - name: Refresh Outputs
         run: |
           cd infrastructure/terraform
-          terraform output -json > ../../config/outputs.json.tmp
-          
-          python3 << 'EOF'
-          import json
-          import os
-          
-          with open('config/outputs.json.tmp', 'r') as f:
-              data = json.load(f)
-          
-          values = {k: v['value'] for k, v in data.items() if 'value' in v}
-          bucket_name = values.get('s3_bucket_name', '')
-          region = 'us-east-1'
-          
-          output = {
-              's3_bucket_name': bucket_name,
-              's3_bucket_arn': values.get('s3_bucket_arn', ''),
-              's3_bucket_url': f'https://{bucket_name}.s3.{region}.amazonaws.com' if bucket_name else '',
-              's3_bucket_region': region,
-              'data_sync_lambda_function_name': values.get('data_sync_lambda_function_name', ''),
-              'data_sync_lambda_arn': values.get('data_sync_lambda_arn', ''),
-              'analytics_lambda_function_name': values.get('analytics_lambda_function_name', ''),
-              'analytics_lambda_arn': values.get('analytics_lambda_arn', ''),
-              'sqs_queue_url': values.get('sqs_queue_url', ''),
-              'sqs_queue_arn': values.get('sqs_queue_arn', ''),
-              'cloudwatch_log_group_data_sync': values.get('cloudwatch_log_group_data_sync', ''),
-              'cloudwatch_log_group_analytics': values.get('cloudwatch_log_group_analytics', ''),
-              'environment': 'dev',
-          }
-          
-          if bucket_name:
-              output['example_urls'] = {
-                  'bucket_root': f'https://{bucket_name}.s3.{region}.amazonaws.com/',
-                  'bls_main_file': f'https://{bucket_name}.s3.{region}.amazonaws.com/pr.data.0.Current',
-                  'population_data_pattern': f'https://{bucket_name}.s3.{region}.amazonaws.com/population_data_*.json'
-              }
-          
-          with open('config/outputs.json', 'w') as f:
-              json.dump(output, f, indent=2)
-          EOF
-          
-          rm config/outputs.json.tmp
+          terraform output -json | python3 ../../scripts/terraform_outputs_to_json.py -o ../../config/outputs.json -e dev
 
       - name: Commit and push outputs.json
         if: always()
@@ -374,46 +334,7 @@ jobs:
       - name: Refresh Outputs (Prod)
         run: |
           cd infrastructure/terraform
-          terraform output -json > ../../config/outputs-prod.json.tmp
-          
-          python3 << 'EOF'
-          import json
-          
-          with open('config/outputs-prod.json.tmp', 'r') as f:
-              data = json.load(f)
-          
-          values = {k: v['value'] for k, v in data.items() if 'value' in v}
-          bucket_name = values.get('s3_bucket_name', '')
-          region = 'us-east-1'
-          
-          output = {
-              'environment': 'prod',
-              's3_bucket_name': bucket_name,
-              's3_bucket_arn': values.get('s3_bucket_arn', ''),
-              's3_bucket_url': f'https://{bucket_name}.s3.{region}.amazonaws.com' if bucket_name else '',
-              's3_bucket_region': region,
-              'data_sync_lambda_function_name': values.get('data_sync_lambda_function_name', ''),
-              'data_sync_lambda_arn': values.get('data_sync_lambda_arn', ''),
-              'analytics_lambda_function_name': values.get('analytics_lambda_function_name', ''),
-              'analytics_lambda_arn': values.get('analytics_lambda_arn', ''),
-              'sqs_queue_url': values.get('sqs_queue_url', ''),
-              'sqs_queue_arn': values.get('sqs_queue_arn', ''),
-              'cloudwatch_log_group_data_sync': values.get('cloudwatch_log_group_data_sync', ''),
-              'cloudwatch_log_group_analytics': values.get('cloudwatch_log_group_analytics', ''),
-          }
-          
-          if bucket_name:
-              output['example_urls'] = {
-                  'bucket_root': f'https://{bucket_name}.s3.{region}.amazonaws.com/',
-                  'bls_main_file': f'https://{bucket_name}.s3.{region}.amazonaws.com/pr.data.0.Current',
-                  'population_data_pattern': f'https://{bucket_name}.s3.{region}.amazonaws.com/population_data_*.json'
-              }
-          
-          with open('config/outputs-prod.json', 'w') as f:
-              json.dump(output, f, indent=2)
-          EOF
-          
-          rm config/outputs-prod.json.tmp
+          terraform output -json | python3 ../../scripts/terraform_outputs_to_json.py -o ../../config/outputs-prod.json -e prod
 
       - name: Commit and push outputs-prod.json
         if: always()
