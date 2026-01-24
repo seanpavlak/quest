@@ -85,7 +85,6 @@ jobs:
     needs: test
     if: github.event_name == 'pull_request'
     permissions:
-      id-token: write      # Required for OIDC auth with AWS
       contents: read
       pull-requests: write # For commenting on PR with plan output
     steps:
@@ -95,9 +94,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-Terraform-Plan
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -155,7 +154,6 @@ jobs:
       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) ||
       github.event_name == 'workflow_dispatch'
     permissions:
-      id-token: write   # Required for OIDC auth with AWS
       contents: write   # For checkout and git push of outputs.json
     steps:
       - name: Checkout code
@@ -166,9 +164,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-Terraform-Deploy
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -299,7 +297,6 @@ jobs:
     # Prod deployments are always manual via workflow_dispatch
     if: github.event_name == 'workflow_dispatch' && (github.event.inputs.environment == 'prod' || github.event.inputs.environment == '')
     permissions:
-      id-token: write   # Required for OIDC auth with AWS
       contents: write   # For checkout and git push of outputs-prod.json
     steps:
       - name: Checkout code
@@ -310,9 +307,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-Terraform-Deploy-Prod
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
