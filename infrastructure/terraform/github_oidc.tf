@@ -9,8 +9,9 @@ resource "aws_iam_openid_connect_provider" "github" {
   ]
 
   thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea1", # GitHub's certificate thumbprint
-    "1c58a3a8518e8759bf075b76b750d4f2df264fcd"  # Backup thumbprint (GitHub rotates)
+    "6938fd4d98bab03faadb97b34396831e3780aea1", # GitHub OIDC (primary)
+    "1c58a3a8518e8759bf075b76b750d4f2df264fcd", # GitHub OIDC (backup)
+    "1b511abead01c8f4e08938dc4b0d25b64e643b2c"  # GitHub OIDC (2023+)
   ]
 
   tags = merge(
