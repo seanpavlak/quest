@@ -24,7 +24,15 @@ on:
       - 'docs/**'
       - '.github/workflows/ci-cd.yml'
   workflow_dispatch:
-    # Manual trigger - useful for prod deployments or re-running dev deployments
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev or prod)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
 
 env:
   AWS_REGION: us-east-1
@@ -156,10 +164,10 @@ jobs:
     needs: test
     environment:
       name: dev
-    # Auto-deploy to dev on push, or manual via workflow_dispatch
+    # Auto-deploy to dev on push to main/master, or manual workflow_dispatch with environment=dev
     if: |
       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) ||
-      github.event_name == 'workflow_dispatch'
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
     permissions:
       contents: write   # For checkout and git push of outputs.json
     steps:
@@ -260,8 +268,8 @@ jobs:
     needs: test
     environment:
       name: prod
-    # Prod deployments are always manual via workflow_dispatch
-    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.environment == 'prod' || github.event.inputs.environment == '')
+    # Prod deployments are manual via workflow_dispatch only when environment=prod
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
     permissions:
       contents: write   # For checkout and git push of outputs-prod.json
     steps:

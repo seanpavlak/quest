@@ -164,7 +164,7 @@ class TestFetchAndSavePopulationData:
         mock_save: Mock
     ) -> None:
         """Test fetch and save when save fails."""
-        mock_fetch.return_value = {'data': []}
+        mock_fetch.return_value = {'data': [{'Year': 2013, 'Population': 316128839}]}
         mock_save.return_value = False
         
         result = fetch_and_save_population_data('test-bucket', 'us-east-1')
@@ -172,3 +172,17 @@ class TestFetchAndSavePopulationData:
         assert result is False
         mock_fetch.assert_called_once()
         mock_save.assert_called_once()
+
+    @patch('rearc.data_sync.population.save_to_s3')
+    @patch('rearc.data_sync.population.fetch_population_data')
+    def test_fetch_and_save_empty_data_skips_save(
+        self,
+        mock_fetch: Mock,
+        mock_save: Mock
+    ) -> None:
+        """Test that empty data array skips save to avoid triggering analytics on empty file."""
+        mock_fetch.return_value = {'data': []}
+        result = fetch_and_save_population_data('test-bucket', 'us-east-1')
+        assert result is False
+        mock_fetch.assert_called_once()
+        mock_save.assert_not_called()

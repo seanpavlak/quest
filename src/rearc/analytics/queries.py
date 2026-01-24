@@ -24,6 +24,11 @@ def query1_population_stats(population_df: pd.DataFrame) -> Dict[str, float]:
     """
     logger.info("Query 1: Population Statistics (2013-2018)")
     
+    # Guard: empty DataFrame or missing columns (e.g. API returned {"data": []})
+    if population_df.empty or 'Year' not in population_df.columns or 'Population' not in population_df.columns:
+        logger.warning("Population data is empty or missing required columns (Year, Population)")
+        return {'mean': 0, 'std_dev': 0}
+    
     # Filter for years 2013-2018 (inclusive)
     # Population data has 'Year' column (capital Y)
     filtered_df = population_df[
@@ -123,6 +128,13 @@ def query3_combined_report(
     if len(filtered_bls) == 0:
         logger.warning("No data found for PRS30006032 Q01")
         return pd.DataFrame(columns=['series_id', 'year', 'period', 'value', 'Population'])
+    
+    # Guard: empty population or missing columns (e.g. API returned {"data": []})
+    if population_df.empty or 'Year' not in population_df.columns or 'Population' not in population_df.columns:
+        logger.warning("Population data is empty or missing Year/Population; returning BLS data with null Population")
+        filtered_bls = filtered_bls.copy()
+        filtered_bls['Population'] = pd.NA
+        return filtered_bls[['series_id', 'year', 'period', 'value', 'Population']]
     
     # Prepare population data for join (rename Year to year for consistency)
     pop_for_join = population_df[['Year', 'Population']].copy()

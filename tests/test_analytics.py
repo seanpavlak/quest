@@ -68,6 +68,18 @@ class TestQuery1PopulationStats:
         
         assert result['mean'] == 0
         assert result['std_dev'] == 0
+
+    def test_query1_empty_dataframe(self) -> None:
+        """Test with empty DataFrame (e.g. API returned {"data": []}); avoids KeyError."""
+        df = pd.DataFrame([])
+        result = query1_population_stats(df)
+        assert result == {'mean': 0, 'std_dev': 0}
+
+    def test_query1_missing_columns(self) -> None:
+        """Test with DataFrame missing Year or Population; avoids KeyError."""
+        df = pd.DataFrame([{'Other': 1}])
+        result = query1_population_stats(df)
+        assert result == {'mean': 0, 'std_dev': 0}
     
     def test_query1_single_year(self) -> None:
         """Test with single year data."""
@@ -268,3 +280,18 @@ class TestQuery3CombinedReport:
         
         assert len(result) == 0
         assert list(result.columns) == ['series_id', 'year', 'period', 'value', 'Population']
+
+    def test_query3_empty_population_dataframe(self) -> None:
+        """Test with empty population DataFrame (e.g. API returned {"data": []}); returns BLS with null Population."""
+        bls_data: Dict[str, List[Any]] = {
+            'series_id': ['PRS30006032', 'PRS30006032'],
+            'year': [2013, 2014],
+            'period': ['Q01', 'Q01'],
+            'value': [0.5, -0.1]
+        }
+        bls_df = pd.DataFrame(bls_data)
+        pop_df = pd.DataFrame([])  # No columns, as from pd.DataFrame([])
+        result = query3_combined_report(bls_df, pop_df)
+        assert len(result) == 2
+        assert list(result.columns) == ['series_id', 'year', 'period', 'value', 'Population']
+        assert result['Population'].isna().all()

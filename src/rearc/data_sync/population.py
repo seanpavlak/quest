@@ -123,6 +123,12 @@ def fetch_and_save_population_data(
         logger.error("Failed to fetch population data")
         return False
     
+    # Do not save when data array is empty; avoids S3 event that would trigger
+    # analytics Lambda on an empty file and cause KeyError in population queries
+    if not data.get('data', []):
+        logger.warning("API returned empty data array; skipping save to avoid triggering analytics on empty file")
+        return False
+    
     # Save to S3
     success = save_to_s3(bucket_name, data, key, region)
     

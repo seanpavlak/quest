@@ -53,7 +53,7 @@ jobs:
 
       - name: Refresh Terraform State (Dev)
         working-directory: infrastructure/terraform
-        run: terraform refresh -var-file="environments.dev.tfvars" -auto-approve
+        run: terraform apply -refresh-only -var-file="environments.dev.tfvars" -auto-approve
 
       - name: Update outputs.json (Dev)
         run: |
@@ -106,7 +106,7 @@ jobs:
 
       - name: Refresh Terraform State (Prod)
         working-directory: infrastructure/terraform
-        run: terraform refresh -var-file="environments.prod.tfvars" -auto-approve
+        run: terraform apply -refresh-only -var-file="environments.prod.tfvars" -auto-approve
 
       - name: Update outputs-prod.json
         run: |
