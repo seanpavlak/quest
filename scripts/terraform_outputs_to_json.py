@@ -14,9 +14,10 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 
 
-def transform(raw: dict, *, environment: str | None = None, region: str = "us-east-1") -> dict:
+def transform(raw: dict, *, environment: Optional[str] = None, region: str = "us-east-1") -> dict:
     """Build simplified output from Terraform output dict."""
     values = {k: v["value"] for k, v in raw.items() if "value" in v}
     bucket_name = values.get("s3_bucket_name") or ""

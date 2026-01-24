@@ -14,10 +14,9 @@ import boto3
 import requests
 from botocore.exceptions import ClientError, BotoCoreError
 
-logger = logging.getLogger(__name__)
+from .bls_parser import USER_AGENT
 
-# User-Agent header for requests
-USER_AGENT = "RearcDataQuest/1.0 (Contact: your-email@example.com)"
+logger = logging.getLogger(__name__)
 
 # Default archive prefix
 DEFAULT_ARCHIVE_PREFIX = 'archive/'

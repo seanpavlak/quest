@@ -189,12 +189,16 @@ def sync_bls_data(
         # - Exclude population data files (start with "population_data_")
         # - Exclude archive files (start with archive_prefix)
         # - Only process files that could be BLS files
+        #
+        # When archive_prefix is empty, do NOT use startswith('') in the filter:
+        # str.startswith('') is True for all strings, so "not f.startswith('')"
+        # would be False for every file, making bls_files_in_s3 empty and breaking
+        # archiving. Only apply the archive-prefix exclusion when it is non-empty.
         archive_prefix_clean = archive_prefix.rstrip('/')
-        
         bls_files_in_s3 = {
             f for f in s3_files
             if not f.startswith(POPULATION_FILE_PREFIX)
-            and not f.startswith(archive_prefix_clean)
+            and (not archive_prefix_clean or not f.startswith(archive_prefix_clean))
         }
         
         logger.info(f"Found {len(s3_files)} total files in S3")

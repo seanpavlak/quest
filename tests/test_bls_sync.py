@@ -381,3 +381,41 @@ class TestFullSync:
         
         # Should not archive anything
         mock_archive.assert_not_called()
+
+    @patch('rearc.data_sync.bls_sync.sync_directory_iterative')
+    @patch('rearc.data_sync.bls_sync.list_s3_objects')
+    @patch('rearc.data_sync.bls_sync.archive_file_to_s3')
+    @patch('rearc.data_sync.bls_sync.boto3.client')
+    def test_sync_bls_data_empty_archive_prefix_still_archives(
+        self,
+        mock_boto3_client: Mock,
+        mock_archive: Mock,
+        mock_list: Mock,
+        mock_sync_iterative: Mock
+    ) -> None:
+        """With archive_prefix='', bls_files_in_s3 must not be empty; archiving must still work.
+
+        When archive_prefix is '', str.startswith('') is True for all strings, so
+        'not f.startswith(archive_prefix_clean)' would be False for every file,
+        yielding an empty bls_files_in_s3 and disabling archiving. This test
+        ensures that edge case is fixed.
+        """
+        s3_client = Mock()
+        mock_boto3_client.return_value = s3_client
+
+        discovered_files = {'file1.txt', 'file2.txt'}
+        mock_sync_iterative.return_value = discovered_files
+
+        # S3 has an extra file that no longer exists in source
+        existing_files = {'file1.txt', 'file2.txt', 'stale.txt', 'population_data_foo.json'}
+        mock_list.return_value = existing_files
+
+        mock_archive.return_value = True
+
+        sync_bls_data('test-bucket', 'us-east-1', archive_prefix='')
+
+        # Must archive stale.txt: it is in S3 but not in source.
+        # If the empty-prefix bug existed, bls_files_in_s3 would be empty
+        # and archive_file_to_s3 would never be called.
+        mock_archive.assert_called_once()
+        mock_archive.assert_called_with(s3_client, 'test-bucket', 'stale.txt', None, '')
