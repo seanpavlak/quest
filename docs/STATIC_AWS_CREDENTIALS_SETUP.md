@@ -46,7 +46,7 @@ The same policy is in `scripts/github-actions-terraform-policy.json` if you want
       "Effect": "Allow",
       "Action": [
         "s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket", "s3:GetBucketLocation",
-        "s3:GetBucketAcl", "s3:GetBucketCors",
+        "s3:GetBucketAcl", "s3:GetBucketCors", "s3:GetBucketWebsite",
         "s3:CreateBucket", "s3:PutBucketVersioning", "s3:GetBucketVersioning",
         "s3:PutEncryptionConfiguration", "s3:GetEncryptionConfiguration",
         "s3:PutBucketPublicAccessBlock", "s3:GetBucketPublicAccessBlock",
@@ -121,6 +121,7 @@ The same policy is in `scripts/github-actions-terraform-policy.json` if you want
       "Effect": "Allow",
       "Action": [
         "dynamodb:DescribeTable", "dynamodb:DescribeContinuousBackups", "dynamodb:DescribeTimeToLive",
+        "dynamodb:ListTagsOfResource",
         "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:ListTables"
       ],
       "Resource": ["arn:aws:dynamodb:us-east-1:851725435783:table/rearc-data-pipeline-*"]
@@ -340,7 +341,9 @@ If `terraform plan` fails with **AccessDenied** for `github-actions-terraform`, 
 | Error | Required action | In Step 2? |
 |-------|-----------------|------------|
 | `s3:GetBucketCORS` on `rearc-data-pipeline-*` | `s3:GetBucketCors` | ✅ S3 statement |
+| `s3:GetBucketWebsite` on `rearc-data-pipeline-*` | `s3:GetBucketWebsite` | ✅ S3 statement |
 | `dynamodb:DescribeTimeToLive` on `rearc-data-pipeline-terraform-state-lock` | `dynamodb:DescribeTimeToLive` | ✅ DynamoDB statement |
+| `dynamodb:ListTagsOfResource` on `rearc-data-pipeline-terraform-state-lock` | `dynamodb:ListTagsOfResource` | ✅ DynamoDB statement |
 | `cloudwatch:ListTagsForResource` on `alarm:rearc-data-pipeline-*` | `cloudwatch:ListTagsForResource` | ✅ CloudWatchAlarms statement |
 
 **To fix:** Either run `./scripts/setup-github-actions-iam.sh` (see **Alternative: Apply Steps 2 and 3 via AWS CLI**), or in the console: IAM → **Policies** → **GitHubActionsTerraformPolicy** → **Edit** → **JSON** tab → replace with the full policy from Step 2 (or `scripts/github-actions-terraform-policy.json`) → **Save changes**. Then re-run the Terraform Plan job.
