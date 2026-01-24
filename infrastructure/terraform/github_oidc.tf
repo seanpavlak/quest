@@ -8,10 +8,11 @@ resource "aws_iam_openid_connect_provider" "github" {
     "sts.amazonaws.com"
   ]
 
+  # Single thumbprint; AWS also uses root CA store for token.actions.githubusercontent.com (2023+).
+  # If "Request ARN is invalid" persists: in IAM console edit this provider and use "Get thumbprint",
+  # or run: echo | openssl s_client -servername token.actions.githubusercontent.com -connect token.actions.githubusercontent.com:443 2>/dev/null | openssl x509 -fingerprint -sha1 -noout
   thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea1", # GitHub OIDC (primary)
-    "1c58a3a8518e8759bf075b76b750d4f2df264fcd", # GitHub OIDC (backup)
-    "1b511abead01c8f4e08938dc4b0d25b64e643b2c"  # GitHub OIDC (2023+)
+    "6938fd4d98bab03faadb97b34396831e3780aea1"
   ]
 
   tags = merge(
@@ -28,8 +29,6 @@ resource "aws_iam_role" "github_actions" {
 
   name = "${var.project_name}-github-actions-role"  # Shared across environments
 
-  # Note: Condition block removed to debug "Request ARN is invalid".
-  # If assume works without it, the :aud or :sub check was failing—add back and test each.
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -39,6 +38,14 @@ resource "aws_iam_role" "github_actions" {
           Federated = aws_iam_openid_connect_provider.github[0].arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:*"
+          }
+        }
       }
     ]
   })
