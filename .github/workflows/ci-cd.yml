@@ -9,6 +9,8 @@ on:
       - 'infrastructure/**'
       - 'src/**'
       - 'tests/**'
+      - 'scripts/**'
+      - 'docs/**'
       - '.github/workflows/ci-cd.yml'
   push:
     branches:
@@ -18,6 +20,8 @@ on:
       - 'infrastructure/**'
       - 'src/**'
       - 'tests/**'
+      - 'scripts/**'
+      - 'docs/**'
       - '.github/workflows/ci-cd.yml'
   workflow_dispatch:
     # Manual trigger - useful for prod deployments or re-running dev deployments
