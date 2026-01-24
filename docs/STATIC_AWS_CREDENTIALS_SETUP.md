@@ -24,6 +24,8 @@ Use this guide when OIDC fails with **"Request ARN is invalid"** and you need to
 
 ## Step 2: Create a Custom Policy for Terraform
 
+The same policy is in `scripts/github-actions-terraform-policy.json` if you want to apply it via CLI (see **Alternative: Apply Steps 2 and 3 via AWS CLI**).
+
 1. Go to **IAM** → **Policies** → **Create policy**.
 2. Open the **JSON** tab and replace the contents with the policy below.
 3. Replace `851725435783` with your AWS account ID if it’s different.
@@ -44,7 +46,7 @@ Use this guide when OIDC fails with **"Request ARN is invalid"** and you need to
       "Effect": "Allow",
       "Action": [
         "s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket", "s3:GetBucketLocation",
-        "s3:GetBucketAcl",
+        "s3:GetBucketAcl", "s3:GetBucketCors",
         "s3:CreateBucket", "s3:PutBucketVersioning", "s3:GetBucketVersioning",
         "s3:PutEncryptionConfiguration", "s3:GetEncryptionConfiguration",
         "s3:PutBucketPublicAccessBlock", "s3:GetBucketPublicAccessBlock",
@@ -118,8 +120,8 @@ Use this guide when OIDC fails with **"Request ARN is invalid"** and you need to
       "Sid": "DynamoDB",
       "Effect": "Allow",
       "Action": [
-        "dynamodb:DescribeTable", "dynamodb:DescribeContinuousBackups", "dynamodb:GetItem", "dynamodb:PutItem",
-        "dynamodb:DeleteItem", "dynamodb:ListTables"
+        "dynamodb:DescribeTable", "dynamodb:DescribeContinuousBackups", "dynamodb:DescribeTimeToLive",
+        "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:ListTables"
       ],
       "Resource": ["arn:aws:dynamodb:us-east-1:851725435783:table/rearc-data-pipeline-*"]
     },
@@ -128,7 +130,8 @@ Use this guide when OIDC fails with **"Request ARN is invalid"** and you need to
       "Effect": "Allow",
       "Action": [
         "cloudwatch:DescribeAlarms", "cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms",
-        "cloudwatch:DescribeAlarmsForMetric", "cloudwatch:ListMetrics", "cloudwatch:GetMetricData"
+        "cloudwatch:DescribeAlarmsForMetric", "cloudwatch:ListMetrics", "cloudwatch:GetMetricData",
+        "cloudwatch:ListTagsForResource"
       ],
       "Resource": ["arn:aws:cloudwatch:us-east-1:851725435783:alarm:rearc-data-pipeline-*"]
     }
@@ -143,6 +146,62 @@ Use this guide when OIDC fails with **"Request ARN is invalid"** and you need to
 1. Go to **IAM** → **Users** → open **github-actions-terraform**.
 2. **Permissions** tab → **Add permissions** → **Attach policies directly**.
 3. Search for **GitHubActionsTerraformPolicy**, select it, and **Add permissions**.
+
+---
+
+## Alternative: Apply Steps 2 and 3 via AWS CLI
+
+If you prefer the CLI, you can create or update the policy and attach it in one go. The policy JSON lives in `scripts/github-actions-terraform-policy.json`.
+
+**Prerequisites:** Step 1 done (user `github-actions-terraform` exists). AWS CLI configured with credentials that can create/update IAM policies and attach them to users.
+
+**Option A: Run the script** (creates the policy if it doesn’t exist, or creates a new default version if it does; then attaches it to the user):
+
+```bash
+./scripts/setup-github-actions-iam.sh
+```
+
+The script uses your current AWS identity’s account ID and `AWS_REGION` (default `us-east-1`). Override with env:
+
+```bash
+AWS_ACCOUNT_ID=851725435783 AWS_REGION=us-east-1 USER_NAME=github-actions-terraform ./scripts/setup-github-actions-iam.sh
+```
+
+**Option B: Run the AWS commands yourself**
+
+From the repo root, with `ACCOUNT` and `USER` set to your account ID and IAM user name:
+
+```bash
+ACCOUNT=851725435783
+USER=github-actions-terraform
+POLICY_ARN="arn:aws:iam::${ACCOUNT}:policy/GitHubActionsTerraformPolicy"
+```
+
+If the policy **does not exist**:
+
+```bash
+aws iam create-policy \
+  --policy-name GitHubActionsTerraformPolicy \
+  --policy-document file://scripts/github-actions-terraform-policy.json \
+  --description "Terraform and CI/CD for rearc-data-pipeline (plan, apply, Lambda, S3, etc.)"
+```
+
+If the policy **already exists** (update to the latest JSON):
+
+```bash
+aws iam create-policy-version \
+  --policy-arn "$POLICY_ARN" \
+  --policy-document file://scripts/github-actions-terraform-policy.json \
+  --set-as-default
+```
+
+Then attach it to the user:
+
+```bash
+aws iam attach-user-policy --user-name "$USER" --policy-arn "$POLICY_ARN"
+```
+
+For a different account or region, edit `scripts/github-actions-terraform-policy.json` (replace `851725435783` and `us-east-1`) before running; or use the script, which substitutes `AWS_ACCOUNT_ID` and `AWS_REGION` when set.
 
 ---
 
@@ -274,9 +333,23 @@ If you fix OIDC (e.g. after an AWS support case or config changes):
 
 ---
 
+## Troubleshooting: AccessDenied During `terraform plan`
+
+If `terraform plan` fails with **AccessDenied** for `github-actions-terraform`, the IAM policy in AWS may not match the JSON in **Step 2**. Update the `GitHubActionsTerraformPolicy` in the console so it **exactly** matches the policy above. Common missing actions:
+
+| Error | Required action | In Step 2? |
+|-------|-----------------|------------|
+| `s3:GetBucketCORS` on `rearc-data-pipeline-*` | `s3:GetBucketCors` | ✅ S3 statement |
+| `dynamodb:DescribeTimeToLive` on `rearc-data-pipeline-terraform-state-lock` | `dynamodb:DescribeTimeToLive` | ✅ DynamoDB statement |
+| `cloudwatch:ListTagsForResource` on `alarm:rearc-data-pipeline-*` | `cloudwatch:ListTagsForResource` | ✅ CloudWatchAlarms statement |
+
+**To fix:** Either run `./scripts/setup-github-actions-iam.sh` (see **Alternative: Apply Steps 2 and 3 via AWS CLI**), or in the console: IAM → **Policies** → **GitHubActionsTerraformPolicy** → **Edit** → **JSON** tab → replace with the full policy from Step 2 (or `scripts/github-actions-terraform-policy.json`) → **Save changes**. Then re-run the Terraform Plan job.
+
+---
+
 ## If Terraform Uses a Different Backend Bucket
 
-The policy uses `arn:aws:s3:::terraform-state-*` and `arn:aws:s3:::rearc-data-pipeline-*`. If your backend bucket has another prefix (e.g. from `backend.tf` or `backend_config`), add a matching `Resource` in the S3 statement, for example:
+The policy uses `arn:aws:s3:::rearc-data-pipeline-*` (including `rearc-data-pipeline-terraform-state-*`). If your backend bucket has another prefix (e.g. from `backend.tf` or `backend_config`), add a matching `Resource` in the S3 statement, for example:
 
 ```json
 "arn:aws:s3:::your-actual-backend-bucket-prefix*",
