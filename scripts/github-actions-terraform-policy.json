@@ -15,6 +15,7 @@
         "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls",
         "s3:GetBucketNotificationConfiguration", "s3:PutBucketNotificationConfiguration",
         "s3:GetBucketIntelligentTieringConfiguration", "s3:PutBucketIntelligentTieringConfiguration", "s3:DeleteBucketIntelligentTieringConfiguration",
+        "s3:GetBucketObjectLockConfiguration",
         "s3:CreateBucket", "s3:PutBucketVersioning", "s3:GetBucketVersioning",
         "s3:PutEncryptionConfiguration", "s3:GetEncryptionConfiguration",
         "s3:PutBucketPublicAccessBlock", "s3:GetBucketPublicAccessBlock",

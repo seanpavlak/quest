@@ -154,6 +154,8 @@ Infrastructure is deployed to **dev** and **prod** environments:
 > - Daily via scheduled workflow (at 1 AM UTC) - syncs both dev and prod
 > - On manual trigger via GitHub Actions
 > - To manually refresh outputs, run `./scripts/refresh_outputs.sh`
+>
+> **GitHub Actions** uses the **rearc-data-pipeline** IAM user. Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in repo **Settings → Secrets and variables → Actions**. See [AWS credentials setup](docs/STATIC_AWS_CREDENTIALS_SETUP.md).
 
 ### Q. How do I share the submission?
 Your submission should be emailed back to us as one or both of the following:
