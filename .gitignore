@@ -25,6 +25,7 @@ build/
 # .terraform.lock.hcl
 *.tfplan
 tfplan
+plan.txt
 terraform.tfvars
 *.tfvars.backup
 crash.log
