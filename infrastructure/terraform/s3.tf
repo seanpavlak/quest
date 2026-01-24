@@ -1,6 +1,6 @@
 resource "aws_s3_bucket" "data_bucket" {
   bucket        = "${local.resource_prefix}-data-${random_id.bucket_suffix.hex}"
-  force_destroy = var.environment == "dev" ? true : false  # Only allow force_destroy in dev
+  force_destroy = var.environment == "dev" ? true : false # Only allow force_destroy in dev
 
   tags = local.common_tags
 }
@@ -32,7 +32,7 @@ resource "aws_s3_bucket_ownership_controls" "data_bucket" {
   bucket = aws_s3_bucket.data_bucket.id
 
   rule {
-    object_ownership = "BucketOwnerEnforced"  # Disables ACLs, best security practice
+    object_ownership = "BucketOwnerEnforced" # Disables ACLs, best security practice
   }
 
   depends_on = [
@@ -236,7 +236,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "access_logs" {
     filter {}
 
     expiration {
-      days = 90  # Keep access logs for 90 days
+      days = 90 # Keep access logs for 90 days
     }
 
     abort_incomplete_multipart_upload {

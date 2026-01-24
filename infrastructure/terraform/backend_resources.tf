@@ -5,7 +5,7 @@ resource "aws_s3_bucket" "terraform_state" {
   tags = merge(
     local.common_tags,
     {
-      Name = "${var.project_name}-terraform-state"
+      Name    = "${var.project_name}-terraform-state"
       Purpose = "TerraformStateStorage"
     }
   )
@@ -76,9 +76,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "terraform_state" {
 
 # DynamoDB Table for Terraform State Locking
 resource "aws_dynamodb_table" "terraform_state_lock" {
-  name           = "${var.project_name}-terraform-state-lock"  # Shared across environments
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "LockID"
+  name         = "${var.project_name}-terraform-state-lock" # Shared across environments
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
 
   attribute {
     name = "LockID"
@@ -88,7 +88,7 @@ resource "aws_dynamodb_table" "terraform_state_lock" {
   tags = merge(
     local.common_tags,
     {
-      Name = "${var.project_name}-terraform-state-lock"
+      Name    = "${var.project_name}-terraform-state-lock"
       Purpose = "TerraformStateLocking"
     }
   )

@@ -91,7 +91,7 @@ resource "aws_cloudwatch_metric_alarm" "data_sync_duration" {
   namespace           = "AWS/Lambda"
   period              = 300
   statistic           = "Average"
-  threshold           = var.lambda_timeout * 1000 * 0.8  # 80% of timeout (ms)
+  threshold           = var.lambda_timeout * 1000 * 0.8 # 80% of timeout (ms)
   alarm_description   = "This metric monitors data sync lambda duration approaching timeout"
   treat_missing_data  = "notBreaching"
 
@@ -111,7 +111,7 @@ resource "aws_cloudwatch_metric_alarm" "analytics_duration" {
   namespace           = "AWS/Lambda"
   period              = 300
   statistic           = "Average"
-  threshold           = var.lambda_timeout * 1000 * 0.8  # 80% of timeout (ms)
+  threshold           = var.lambda_timeout * 1000 * 0.8 # 80% of timeout (ms)
   alarm_description   = "This metric monitors analytics lambda duration approaching timeout"
   treat_missing_data  = "notBreaching"
 
@@ -171,7 +171,7 @@ resource "aws_cloudwatch_metric_alarm" "data_sync_concurrent_executions" {
   namespace           = "AWS/Lambda"
   period              = 300
   statistic           = "Maximum"
-  threshold           = 800  # Warn when approaching AWS default limit of 1000
+  threshold           = 800 # Warn when approaching AWS default limit of 1000
   alarm_description   = "This metric monitors data sync lambda concurrent executions"
   treat_missing_data  = "notBreaching"
 
@@ -191,7 +191,7 @@ resource "aws_cloudwatch_metric_alarm" "analytics_concurrent_executions" {
   namespace           = "AWS/Lambda"
   period              = 300
   statistic           = "Maximum"
-  threshold           = 800  # Warn when approaching AWS default limit of 1000
+  threshold           = 800 # Warn when approaching AWS default limit of 1000
   alarm_description   = "This metric monitors analytics lambda concurrent executions"
   treat_missing_data  = "notBreaching"
 
