@@ -44,6 +44,7 @@ Use this guide when OIDC fails with **"Request ARN is invalid"** and you need to
       "Effect": "Allow",
       "Action": [
         "s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket", "s3:GetBucketLocation",
+        "s3:GetBucketAcl",
         "s3:CreateBucket", "s3:PutBucketVersioning", "s3:GetBucketVersioning",
         "s3:PutEncryptionConfiguration", "s3:GetEncryptionConfiguration",
         "s3:PutBucketPublicAccessBlock", "s3:GetBucketPublicAccessBlock",
@@ -73,9 +74,13 @@ Use this guide when OIDC fails with **"Request ARN is invalid"** and you need to
         "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:AttachRolePolicy", "iam:DetachRolePolicy",
         "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies",
         "iam:ListAttachedRolePolicies", "iam:PassRole", "iam:TagRole", "iam:UntagRole", "iam:ListRoleTags",
-        "iam:UpdateAssumeRolePolicy", "iam:CreateServiceLinkedRole"
+        "iam:UpdateAssumeRolePolicy", "iam:CreateServiceLinkedRole",
+        "iam:GetOpenIDConnectProvider"
       ],
-      "Resource": ["arn:aws:iam::851725435783:role/rearc-data-pipeline-*"]
+      "Resource": [
+        "arn:aws:iam::851725435783:role/rearc-data-pipeline-*",
+        "arn:aws:iam::851725435783:oidc-provider/*"
+      ]
     },
     {
       "Sid": "EventBridge",
@@ -104,16 +109,28 @@ Use this guide when OIDC fails with **"Request ARN is invalid"** and you need to
         "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:DescribeLogGroups",
         "logs:PutRetentionPolicy", "logs:TagLogGroup", "logs:UntagLogGroup", "logs:ListTagsForResource"
       ],
-      "Resource": ["arn:aws:logs:us-east-1:851725435783:log-group:/aws/lambda/rearc-data-pipeline-*"]
+      "Resource": [
+        "arn:aws:logs:us-east-1:851725435783:log-group:/aws/lambda/rearc-data-pipeline-*",
+        "arn:aws:logs:us-east-1:851725435783:log-group:*"
+      ]
     },
     {
       "Sid": "DynamoDB",
       "Effect": "Allow",
       "Action": [
-        "dynamodb:DescribeTable", "dynamodb:GetItem", "dynamodb:PutItem",
+        "dynamodb:DescribeTable", "dynamodb:DescribeContinuousBackups", "dynamodb:GetItem", "dynamodb:PutItem",
         "dynamodb:DeleteItem", "dynamodb:ListTables"
       ],
       "Resource": ["arn:aws:dynamodb:us-east-1:851725435783:table/rearc-data-pipeline-*"]
+    },
+    {
+      "Sid": "CloudWatchAlarms",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:DescribeAlarms", "cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms",
+        "cloudwatch:DescribeAlarmsForMetric", "cloudwatch:ListMetrics", "cloudwatch:GetMetricData"
+      ],
+      "Resource": ["arn:aws:cloudwatch:us-east-1:851725435783:alarm:rearc-data-pipeline-*"]
     }
   ]
 }
