@@ -92,32 +92,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Option A: Static credentials (fallback when OIDC fails with "Request ARN is invalid").
-      # Add GitHub secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY. IAM user needs Terraform permissions.
-      - name: Configure AWS (static fallback)
-        if: secrets.AWS_ACCESS_KEY_ID != ''
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role
           aws-region: ${{ env.AWS_REGION }}
-
-      # Option B: OIDC (preferred; no long-lived secrets). Fails with "Request ARN is invalid" in some setups.
-      - name: Assume AWS role via OIDC
-        if: secrets.AWS_ACCESS_KEY_ID == ''
-        run: |
-          URL="$ACTIONS_ID_TOKEN_REQUEST_URL"
-          [[ "$URL" == *"?"* ]] && URL="${URL}&audience=sts.amazonaws.com" || URL="${URL}?audience=sts.amazonaws.com"
-          OIDC_TOKEN=$(curl -sSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$URL" | jq -r '.value')
-          CREDS=$(aws sts assume-role-with-web-identity \
-            --role-arn arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role \
-            --role-session-name GitHubActions-Terraform-Plan \
-            --web-identity-token "$OIDC_TOKEN" \
-            --output json)
-          echo "AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r '.Credentials.AccessKeyId')" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.Credentials.SecretAccessKey')" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r '.Credentials.SessionToken')" >> $GITHUB_ENV
-          echo "AWS_REGION=${{ env.AWS_REGION }}" >> $GITHUB_ENV
+          role-session-name: GitHubActions-Terraform-Plan
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
