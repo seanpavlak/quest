@@ -40,12 +40,6 @@ def transform(raw: dict, *, environment: str | None = None, region: str = "us-ea
         "terraform_state_lock_table_arn": values.get("terraform_state_lock_table_arn", ""),
     }
 
-    dlq_url = values.get("analytics_dlq_url")
-    dlq_arn = values.get("analytics_dlq_arn")
-    if dlq_url is not None or dlq_arn is not None:
-        output["analytics_dlq_url"] = dlq_url
-        output["analytics_dlq_arn"] = dlq_arn
-
     if environment is not None:
         output["environment"] = environment
 

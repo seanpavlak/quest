@@ -96,6 +96,10 @@ aws s3 ls s3://$BUCKET_NAME/ --recursive
 
 **Note:** The bucket name includes a random suffix to ensure uniqueness. After deployment, the outputs file (`config/outputs.json`) is automatically updated with the current bucket name and all other infrastructure outputs.
 
+### S3 Data Bucket Visibility
+
+The data bucket is **publicly readable** for the assignment so you can "share with us a link" (Part 1). The links in `config/outputs.json` → `example_urls` work for reviewers without AWS credentials.
+
 ---
 
 ## Architecture Overview
@@ -193,8 +197,7 @@ aws s3 ls s3://$BUCKET_NAME/ --recursive
 - **Features**:
   - Versioning enabled
   - Server-side encryption (AES256)
-  - Public read access (for submission requirements)
-  - Lifecycle policies (optional)
+  - Publicly readable for the assignment (Part 1 "share with us a link")
 - **Configuration**: `infrastructure/terraform/s3.tf`
 
 #### 4. S3 Event Notifications
@@ -206,7 +209,7 @@ aws s3 ls s3://$BUCKET_NAME/ --recursive
 #### 5. SQS Queue
 - **Queue Name**: `{project_name}-s3-notifications`
 - **Message Retention**: 4 days (345600 seconds)
-- **Visibility Timeout**: 5 minutes (300 seconds)
+- **Visibility Timeout**: Lambda timeout + 60 seconds (e.g. 6 minutes when `lambda_timeout` = 300)
 - **Purpose**: Buffer S3 events for Analytics Lambda
 - **Configuration**: `infrastructure/terraform/sqs.tf`
 

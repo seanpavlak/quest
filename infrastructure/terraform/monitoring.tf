@@ -1,6 +1,5 @@
-# CloudWatch Alarms for Lambda Monitoring
+# CloudWatch Alarms - Lambda errors only
 
-# Alarm for Data Sync Lambda errors
 resource "aws_cloudwatch_metric_alarm" "data_sync_errors" {
   alarm_name          = "${local.resource_prefix}-data-sync-errors"
   comparison_operator = "GreaterThanThreshold"
@@ -10,7 +9,7 @@ resource "aws_cloudwatch_metric_alarm" "data_sync_errors" {
   period              = 300
   statistic           = "Sum"
   threshold           = 0
-  alarm_description   = "This metric monitors data sync lambda errors"
+  alarm_description   = "Data sync Lambda errors"
   treat_missing_data  = "notBreaching"
 
   dimensions = {
@@ -20,7 +19,6 @@ resource "aws_cloudwatch_metric_alarm" "data_sync_errors" {
   tags = local.common_tags
 }
 
-# Alarm for Analytics Lambda errors
 resource "aws_cloudwatch_metric_alarm" "analytics_errors" {
   alarm_name          = "${local.resource_prefix}-analytics-errors"
   comparison_operator = "GreaterThanThreshold"
@@ -30,169 +28,7 @@ resource "aws_cloudwatch_metric_alarm" "analytics_errors" {
   period              = 300
   statistic           = "Sum"
   threshold           = 0
-  alarm_description   = "This metric monitors analytics lambda errors"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    FunctionName = aws_lambda_function.analytics.function_name
-  }
-
-  tags = local.common_tags
-}
-
-# Alarm for SQS queue depth (if messages are backing up)
-resource "aws_cloudwatch_metric_alarm" "sqs_queue_depth" {
-  alarm_name          = "${local.resource_prefix}-sqs-queue-depth"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "ApproximateNumberOfMessagesVisible"
-  namespace           = "AWS/SQS"
-  period              = 300
-  statistic           = "Average"
-  threshold           = 10
-  alarm_description   = "This metric monitors SQS queue depth"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    QueueName = aws_sqs_queue.s3_notifications.name
-  }
-
-  tags = local.common_tags
-}
-
-# Alarm for DLQ messages (if enabled)
-resource "aws_cloudwatch_metric_alarm" "dlq_messages" {
-  count = var.enable_dlq ? 1 : 0
-
-  alarm_name          = "${local.resource_prefix}-dlq-messages"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  metric_name         = "ApproximateNumberOfMessagesVisible"
-  namespace           = "AWS/SQS"
-  period              = 300
-  statistic           = "Sum"
-  threshold           = 0
-  alarm_description   = "This metric monitors dead letter queue messages"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    QueueName = aws_sqs_queue.analytics_dlq[0].name
-  }
-
-  tags = local.common_tags
-}
-
-# Alarm for Data Sync Lambda duration (warns when approaching timeout)
-resource "aws_cloudwatch_metric_alarm" "data_sync_duration" {
-  alarm_name          = "${local.resource_prefix}-data-sync-duration"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "Duration"
-  namespace           = "AWS/Lambda"
-  period              = 300
-  statistic           = "Average"
-  threshold           = var.lambda_timeout * 1000 * 0.8 # 80% of timeout (ms)
-  alarm_description   = "This metric monitors data sync lambda duration approaching timeout"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    FunctionName = aws_lambda_function.data_sync.function_name
-  }
-
-  tags = local.common_tags
-}
-
-# Alarm for Analytics Lambda duration (warns when approaching timeout)
-resource "aws_cloudwatch_metric_alarm" "analytics_duration" {
-  alarm_name          = "${local.resource_prefix}-analytics-duration"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "Duration"
-  namespace           = "AWS/Lambda"
-  period              = 300
-  statistic           = "Average"
-  threshold           = var.lambda_timeout * 1000 * 0.8 # 80% of timeout (ms)
-  alarm_description   = "This metric monitors analytics lambda duration approaching timeout"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    FunctionName = aws_lambda_function.analytics.function_name
-  }
-
-  tags = local.common_tags
-}
-
-# Alarm for Data Sync Lambda throttles
-resource "aws_cloudwatch_metric_alarm" "data_sync_throttles" {
-  alarm_name          = "${local.resource_prefix}-data-sync-throttles"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "Throttles"
-  namespace           = "AWS/Lambda"
-  period              = 300
-  statistic           = "Sum"
-  threshold           = 0
-  alarm_description   = "This metric monitors data sync lambda throttles"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    FunctionName = aws_lambda_function.data_sync.function_name
-  }
-
-  tags = local.common_tags
-}
-
-# Alarm for Analytics Lambda throttles
-resource "aws_cloudwatch_metric_alarm" "analytics_throttles" {
-  alarm_name          = "${local.resource_prefix}-analytics-throttles"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "Throttles"
-  namespace           = "AWS/Lambda"
-  period              = 300
-  statistic           = "Sum"
-  threshold           = 0
-  alarm_description   = "This metric monitors analytics lambda throttles"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    FunctionName = aws_lambda_function.analytics.function_name
-  }
-
-  tags = local.common_tags
-}
-
-# Alarm for Data Sync Lambda concurrent executions
-resource "aws_cloudwatch_metric_alarm" "data_sync_concurrent_executions" {
-  alarm_name          = "${local.resource_prefix}-data-sync-concurrent-executions"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "ConcurrentExecutions"
-  namespace           = "AWS/Lambda"
-  period              = 300
-  statistic           = "Maximum"
-  threshold           = 800 # Warn when approaching AWS default limit of 1000
-  alarm_description   = "This metric monitors data sync lambda concurrent executions"
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    FunctionName = aws_lambda_function.data_sync.function_name
-  }
-
-  tags = local.common_tags
-}
-
-# Alarm for Analytics Lambda concurrent executions
-resource "aws_cloudwatch_metric_alarm" "analytics_concurrent_executions" {
-  alarm_name          = "${local.resource_prefix}-analytics-concurrent-executions"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "ConcurrentExecutions"
-  namespace           = "AWS/Lambda"
-  period              = 300
-  statistic           = "Maximum"
-  threshold           = 800 # Warn when approaching AWS default limit of 1000
-  alarm_description   = "This metric monitors analytics lambda concurrent executions"
+  alarm_description   = "Analytics Lambda errors"
   treat_missing_data  = "notBreaching"
 
   dimensions = {

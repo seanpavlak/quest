@@ -81,13 +81,6 @@ resource "aws_lambda_function" "analytics" {
     }
   }
 
-  dynamic "dead_letter_config" {
-    for_each = var.enable_dlq ? [1] : []
-    content {
-      target_arn = aws_sqs_queue.analytics_dlq[0].arn
-    }
-  }
-
   depends_on = [
     aws_cloudwatch_log_group.analytics,
     aws_iam_role_policy.analytics_lambda,

@@ -96,8 +96,8 @@ You can do as many as you like. We suspect though that once you start you won't 
 All required submission items are completed and documented below:
 
 1. **Link to data in S3 and source code (Part 1)**
-   - ✅ **S3 Bucket Link**: [View Data in S3](https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/)
-   - ✅ **Main BLS File**: [pr.data.0.Current](https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/pr.data.0.Current)
+   - ✅ **S3 Bucket Link**: See `config/outputs.json` → `example_urls.bucket_root` (data bucket is publicly readable for the assignment)
+   - ✅ **Main BLS File**: See `config/outputs.json` → `example_urls.bls_main_file`
    - ✅ **Source Code**: [`src/rearc/data_sync/bls_sync.py`](src/rearc/data_sync/bls_sync.py) - BLS data sync implementation
    - ✅ **Documentation**: See [Part 1 Implementation](docs/DEPLOYMENT_GUIDE.md#part-1-bls-data-sync) for details
 
@@ -128,7 +128,7 @@ All required submission items are completed and documented below:
 
 #### 🚀 Quick Links
 
-- **S3 Data Bucket**: [View Data](https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/)
+- **S3 Data Bucket**: See `config/outputs.json` (`s3_bucket_url`, `example_urls`)
 - **GitHub Repository**: [seanpavlak/quest](https://github.com/seanpavlak/quest)
 - **CI/CD Status**: [GitHub Actions](https://github.com/seanpavlak/quest/actions)
 - **Code Coverage**: [Codecov Report](https://codecov.io/gh/seanpavlak/quest)
