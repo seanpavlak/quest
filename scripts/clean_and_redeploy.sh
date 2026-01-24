@@ -14,7 +14,7 @@ echo "  Clean Deployment Script"
 echo "=========================================="
 echo ""
 echo "This will:"
-echo "  1. Destroy all AWS resources"
+echo "  1. Destroy all AWS resources (except the Terraform state backend: S3 bucket and DynamoDB lock table)"
 echo "  2. Clean local Lambda dependencies"
 echo "  3. Reinstall dependencies (Linux-compatible)"
 echo "  4. Redeploy everything"
@@ -28,9 +28,28 @@ if [ "$confirm" != "yes" ]; then
 fi
 
 echo ""
-echo "=== Step 1: Destroying All AWS Resources ==="
+echo "=== Step 1: Destroying All AWS Resources (excluding backend state bucket and DynamoDB lock table) ==="
 cd infrastructure/terraform
-terraform destroy -auto-approve
+
+# Ensure backend is initialized (needed for state list and destroy)
+terraform init -input=false
+
+# Destroy only non-backend resources so the subsequent plan/apply can acquire a state lock.
+# The backend (S3 state bucket and DynamoDB lock table in backend_resources.tf) must persist;
+# if they are destroyed, "terraform plan" fails because the lock table no longer exists.
+BACKEND_PATTERN='^random_id\.state_bucket_suffix$|^aws_s3_bucket\.terraform_state$|^aws_s3_bucket_versioning\.terraform_state$|^aws_s3_bucket_server_side_encryption_configuration\.terraform_state$|^aws_s3_bucket_public_access_block\.terraform_state$|^aws_s3_bucket_ownership_controls\.terraform_state$|^aws_s3_bucket_lifecycle_configuration\.terraform_state$|^aws_dynamodb_table\.terraform_state_lock$'
+
+state_list=$(terraform state list) || { echo "Error: terraform state list failed (is the backend reachable?)."; exit 1; }
+targets=()
+while IFS= read -r r; do
+  [ -n "$r" ] && targets+=(-target="$r")
+done < <(echo "$state_list" | grep -v -E "$BACKEND_PATTERN" || true)
+
+if [ ${#targets[@]} -eq 0 ]; then
+  echo "No non-backend resources in state; skipping destroy."
+else
+  terraform destroy -auto-approve "${targets[@]}"
+fi
 
 echo ""
 echo "=== Step 2: Cleaning Local Lambda Dependencies ==="

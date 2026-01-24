@@ -1,4 +1,10 @@
 # S3 Bucket for Terraform State Storage
+#
+# These backend resources (S3 state bucket and DynamoDB lock table) are referenced by
+# backend.tf for state storage and locking. scripts/clean_and_redeploy.sh explicitly
+# excludes them from "terraform destroy" so that the subsequent "terraform plan" can
+# acquire a state lock. Do not add them to a full destroy in automation.
+#
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "${var.project_name}-terraform-state-${random_id.state_bucket_suffix.hex}"
 
