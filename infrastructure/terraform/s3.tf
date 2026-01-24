@@ -41,6 +41,10 @@ resource "aws_s3_bucket_ownership_controls" "data_bucket" {
 }
 
 # Public access block - configurable via variable
+# When enable_public_s3_access=true, block_public_policy is set to false so the
+# public_read bucket policy can be applied. If you see "public policies are
+# prevented by the BlockPublicPolicy setting", ensure S3 account-level
+# "Block Public Access" does not have "Block public bucket policies" enabled.
 resource "aws_s3_bucket_public_access_block" "data_bucket" {
   bucket = aws_s3_bucket.data_bucket.id
 
@@ -48,6 +52,18 @@ resource "aws_s3_bucket_public_access_block" "data_bucket" {
   block_public_policy     = !var.enable_public_s3_access
   ignore_public_acls      = !var.enable_public_s3_access
   restrict_public_buckets = !var.enable_public_s3_access
+}
+
+# Short delay so block_public_policy=false can propagate before applying the
+# public bucket policy (avoids 403 from eventual consistency).
+resource "null_resource" "delay_before_public_policy" {
+  count = var.enable_public_s3_access ? 1 : 0
+
+  depends_on = [aws_s3_bucket_public_access_block.data_bucket]
+
+  provisioner "local-exec" {
+    command = "sleep 15"
+  }
 }
 
 # Bucket policy to allow public read access (only if enabled)
@@ -68,7 +84,7 @@ resource "aws_s3_bucket_policy" "public_read" {
     ]
   })
 
-  depends_on = [aws_s3_bucket_public_access_block.data_bucket]
+  depends_on = [null_resource.delay_before_public_policy[0]]
 }
 
 # S3 Lifecycle Configuration for cost optimization

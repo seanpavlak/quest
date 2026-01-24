@@ -92,20 +92,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # DEBUG: Remove this step after fixing OIDC — prints the token's sub and aud so we can match the trust policy
-      - name: Debug OIDC token (sub and aud)
-        run: |
-          URL="$ACTIONS_ID_TOKEN_REQUEST_URL"
-          [[ "$URL" == *"?"* ]] && URL="${URL}&audience=sts.amazonaws.com" || URL="${URL}?audience=sts.amazonaws.com"
-          RESP=$(curl -sL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$URL")
-          TOKEN=$(echo "$RESP" | jq -r '.value')
-          B64=$(echo "$TOKEN" | cut -d. -f2); B64=$(echo "$B64" | tr '_-' '/+'); while [ $((${#B64} % 4)) -ne 0 ]; do B64="${B64}="; done
-          echo "--- OIDC token payload (sub must match repo:seanpavlak/quest:*) ---"
-          echo "$B64" | base64 -d 2>/dev/null | jq -c '{sub, aud, iss}'
-          echo "---"
-
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::851725435783:role:rearc-data-pipeline-github-actions-role
           aws-region: ${{ env.AWS_REGION }}
