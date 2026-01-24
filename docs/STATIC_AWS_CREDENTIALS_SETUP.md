@@ -45,10 +45,16 @@ The same policy is in `scripts/github-actions-terraform-policy.json` if you want
       "Sid": "S3",
       "Effect": "Allow",
       "Action": [
-        "s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket", "s3:GetBucketLocation",
+        "s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:HeadObject", "s3:GetObjectVersion",
+        "s3:ListBucket", "s3:GetBucketLocation",
         "s3:GetBucketAcl", "s3:GetBucketCors", "s3:GetBucketWebsite",
         "s3:GetBucketAccelerateConfiguration", "s3:GetAccelerateConfiguration",
-        "s3:GetBucketRequestPayment", "s3:GetBucketLogging",
+        "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:PutBucketLogging",
+        "s3:GetReplicationConfiguration", "s3:GetBucketReplication",
+        "s3:GetBucketTagging", "s3:PutBucketTagging",
+        "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls",
+        "s3:GetBucketNotificationConfiguration", "s3:PutBucketNotificationConfiguration",
+        "s3:GetBucketIntelligentTieringConfiguration", "s3:PutBucketIntelligentTieringConfiguration", "s3:DeleteBucketIntelligentTieringConfiguration",
         "s3:CreateBucket", "s3:PutBucketVersioning", "s3:GetBucketVersioning",
         "s3:PutEncryptionConfiguration", "s3:GetEncryptionConfiguration",
         "s3:PutBucketPublicAccessBlock", "s3:GetBucketPublicAccessBlock",
@@ -65,8 +71,10 @@ The same policy is in `scripts/github-actions-terraform-policy.json` if you want
       "Effect": "Allow",
       "Action": [
         "lambda:CreateFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration",
-        "lambda:GetFunction", "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission",
-        "lambda:ListFunctions", "lambda:InvokeFunction", "lambda:GetFunctionConfiguration",
+        "lambda:GetFunction", "lambda:DeleteFunction", "lambda:GetFunctionConfiguration",
+        "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
+        "lambda:CreateEventSourceMapping", "lambda:DeleteEventSourceMapping", "lambda:GetEventSourceMapping", "lambda:UpdateEventSourceMapping", "lambda:ListEventSourceMappings",
+        "lambda:ListFunctions", "lambda:InvokeFunction",
         "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags"
       ],
       "Resource": ["arn:aws:lambda:us-east-1:851725435783:function:rearc-data-pipeline-*"]
@@ -79,7 +87,7 @@ The same policy is in `scripts/github-actions-terraform-policy.json` if you want
         "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies",
         "iam:ListAttachedRolePolicies", "iam:PassRole", "iam:TagRole", "iam:UntagRole", "iam:ListRoleTags",
         "iam:UpdateAssumeRolePolicy", "iam:CreateServiceLinkedRole",
-        "iam:GetOpenIDConnectProvider"
+        "iam:GetOpenIDConnectProvider", "iam:CreateOpenIDConnectProvider", "iam:DeleteOpenIDConnectProvider", "iam:UpdateOpenIDConnectProvider"
       ],
       "Resource": [
         "arn:aws:iam::851725435783:role/rearc-data-pipeline-*",
@@ -141,6 +149,8 @@ The same policy is in `scripts/github-actions-terraform-policy.json` if you want
   ]
 }
 ```
+
+The policy is written to cover **all Terraform resources** in this repo (S3 buckets and subresources, Lambda including event source mappings, IAM including OIDC provider, CloudWatch, etc.) so `terraform plan`/`apply` should not hit new `AccessDenied` for read/refresh. If the AWS provider adds new read APIs in a future version, you may need to add those actions.
 
 ---
 
@@ -347,6 +357,10 @@ If `terraform plan` fails with **AccessDenied** for `github-actions-terraform`, 
 | `s3:GetAccelerateConfiguration` / `s3:GetBucketAccelerateConfiguration` | `s3:GetBucketAccelerateConfiguration`, `s3:GetAccelerateConfiguration` | ✅ S3 statement |
 | `s3:GetBucketRequestPayment` | `s3:GetBucketRequestPayment` | ✅ S3 statement |
 | `s3:GetBucketLogging` | `s3:GetBucketLogging` | ✅ S3 statement |
+| `s3:GetReplicationConfiguration` / `s3:GetBucketReplication` | `s3:GetReplicationConfiguration`, `s3:GetBucketReplication` | ✅ S3 statement |
+| `s3:GetBucketTagging`, `s3:GetBucketOwnershipControls`, `s3:PutBucketLogging`, `s3:GetBucketNotificationConfiguration`, etc. | All S3 subresource Get/Put actions for aws_s3_bucket_* | ✅ S3 statement |
+| `lambda:GetEventSourceMapping`, `lambda:CreateEventSourceMapping`, etc. | Lambda event source mapping APIs | ✅ Lambda statement |
+| `iam:CreateOpenIDConnectProvider`, `iam:DeleteOpenIDConnectProvider` | IAM OIDC provider management | ✅ IAM statement |
 | `dynamodb:DescribeTimeToLive` on `rearc-data-pipeline-terraform-state-lock` | `dynamodb:DescribeTimeToLive` | ✅ DynamoDB statement |
 | `dynamodb:ListTagsOfResource` on `rearc-data-pipeline-terraform-state-lock` | `dynamodb:ListTagsOfResource` | ✅ DynamoDB statement |
 | `cloudwatch:ListTagsForResource` on `alarm:rearc-data-pipeline-*` | `cloudwatch:ListTagsForResource` | ✅ CloudWatchAlarms statement |
