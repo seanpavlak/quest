@@ -99,18 +99,18 @@ All required submission items are completed and documented below:
    - ✅ **S3 Bucket Link**: [View Data in S3](https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/)
    - ✅ **Main BLS File**: [pr.data.0.Current](https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/pr.data.0.Current)
    - ✅ **Source Code**: [`src/rearc/data_sync/bls_sync.py`](src/rearc/data_sync/bls_sync.py) - BLS data sync implementation
-   - ✅ **Documentation**: See [Part 1 Implementation](docs/README.md#part-1-bls-data-sync) for details
+   - ✅ **Documentation**: See [Part 1 Implementation](docs/DEPLOYMENT_GUIDE.md#part-1-bls-data-sync) for details
 
 2. **Source code (Part 2)**
    - ✅ **Source Code**: [`src/rearc/data_sync/population.py`](src/rearc/data_sync/population.py) - Population API fetch implementation
    - ✅ **Population Data Files**: Available in S3 with pattern `population_data_*.json`
-   - ✅ **Documentation**: See [Part 2 Implementation](docs/README.md#part-2-population-api-fetch) for details
+   - ✅ **Documentation**: See [Part 2 Implementation](docs/DEPLOYMENT_GUIDE.md#part-2-population-api-fetch) for details
 
 3. **Source code in .ipynb file format and results (Part 3)**
    - ✅ **Jupyter Notebook**: [`notebooks/data_analysis.ipynb`](notebooks/data_analysis.ipynb)
    - ✅ **Analytics Queries**: [`src/rearc/analytics/queries.py`](src/rearc/analytics/queries.py)
-   - ✅ **Test Results**: See [Test Suite Summary](tests/TEST_SUITE_SUMMARY.md) for query results
-   - ✅ **Documentation**: See [Part 3 Implementation](docs/README.md#part-3-analytics-queries) for details
+   - ✅ **Test Results**: See [notebooks/data_analysis.ipynb](notebooks/data_analysis.ipynb) for query results and analysis
+   - ✅ **Documentation**: See [Part 3 Implementation](docs/DEPLOYMENT_GUIDE.md#part-3-analytics-queries) for details
 
 4. **Source code of the data pipeline infrastructure (Part 4)**
    - ✅ **Terraform Infrastructure**: [`infrastructure/terraform/`](infrastructure/terraform/) - Complete IaC configuration
@@ -124,8 +124,7 @@ All required submission items are completed and documented below:
 5. **README or documentation**
    - ✅ **Main README**: This file
    - ✅ **Deployment Guide**: [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Comprehensive deployment instructions
-   - ✅ **Documentation**: [docs/README.md](docs/README.md) - Implementation details
-   - ✅ **Test Documentation**: [tests/README.md](tests/README.md) and [tests/TEST_SUITE_SUMMARY.md](tests/TEST_SUITE_SUMMARY.md)
+   - ✅ **Tests**: `pytest tests/ -v` (test modules in `tests/`)
 
 #### 🚀 Quick Links
 
@@ -155,7 +154,7 @@ Infrastructure is deployed to **dev** and **prod** environments:
 > - On manual trigger via GitHub Actions
 > - To manually refresh outputs, run `./scripts/refresh_outputs.sh`
 >
-> **GitHub Actions** uses the **rearc-data-pipeline** IAM user. Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in repo **Settings → Secrets and variables → Actions**. See [AWS credentials setup](docs/STATIC_AWS_CREDENTIALS_SETUP.md).
+> **GitHub Actions** uses the **rearc-data-pipeline** IAM user. Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in repo **Settings → Secrets and variables → Actions**.
 
 ### Q. How do I share the submission?
 Your submission should be emailed back to us as one or both of the following:

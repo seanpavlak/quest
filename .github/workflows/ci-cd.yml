@@ -127,7 +127,7 @@ jobs:
       - name: Terraform Plan (Dev)
         id: plan
         working-directory: infrastructure/terraform
-        run: terraform plan -var-file="environments/dev.tfvars" -no-color -out=tfplan 2>&1 | tee plan.txt
+        run: terraform plan -var-file="environments.dev.tfvars" -no-color -out=tfplan 2>&1 | tee plan.txt
 
       - name: Comment PR with Plan
         uses: actions/github-script@v7
@@ -229,7 +229,7 @@ jobs:
 
       - name: Terraform Plan (Dev)
         working-directory: infrastructure/terraform
-        run: terraform plan -var-file="environments/dev.tfvars" -out=tfplan
+        run: terraform plan -var-file="environments.dev.tfvars" -out=tfplan
 
       - name: Terraform Apply (Dev)
         working-directory: infrastructure/terraform
@@ -264,8 +264,6 @@ jobs:
               'sqs_queue_arn': values.get('sqs_queue_arn', ''),
               'cloudwatch_log_group_data_sync': values.get('cloudwatch_log_group_data_sync', ''),
               'cloudwatch_log_group_analytics': values.get('cloudwatch_log_group_analytics', ''),
-              'github_actions_role_arn': values.get('github_actions_role_arn', ''),
-              'github_oidc_provider_arn': values.get('github_oidc_provider_arn', ''),
               'environment': 'dev',
           }
           
@@ -367,7 +365,7 @@ jobs:
 
       - name: Terraform Plan (Prod)
         working-directory: infrastructure/terraform
-        run: terraform plan -var-file="environments/prod.tfvars" -out=tfplan
+        run: terraform plan -var-file="environments.prod.tfvars" -out=tfplan
 
       - name: Terraform Apply (Prod)
         working-directory: infrastructure/terraform

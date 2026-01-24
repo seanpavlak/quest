@@ -19,14 +19,19 @@ This comprehensive guide provides detailed information about the architecture, c
 
 ### Current S3 Bucket
 
-**Bucket Name:** `rearc-data-pipeline-data-08041c62`  
-**Bucket URL:** https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/  
-**Region:** us-east-1
+The bucket name and URLs depend on your deployment (dev/prod and a unique suffix). Get the current values from:
 
-**Example URLs:**
-- BLS Data (root directory): https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/
-- Main BLS file: https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/pr.data.0.Current
-- Population data pattern: https://rearc-data-pipeline-data-08041c62.s3.us-east-1.amazonaws.com/population_data_*.json
+```bash
+cat config/outputs.json | python3 -c "import sys, json; d=json.load(sys.stdin); print(d['s3_bucket_name'], d['s3_bucket_url'])"
+# or: cd infrastructure/terraform && terraform output -raw s3_bucket_name
+```
+
+**Example (your actual bucket will differ):**
+- **Bucket Name:** `rearc-data-pipeline-{environment}-data-{suffix}`
+- **Region:** us-east-1 (or your `aws_region`)
+- **URL format:** `https://<bucket-name>.s3.<region>.amazonaws.com/`
+- **Main BLS file:** `https://<bucket-name>.s3.<region>.amazonaws.com/pr.data.0.Current`
+- **Population pattern:** `https://<bucket-name>.s3.<region>.amazonaws.com/population_data_*.json`
 
 ### Infrastructure Outputs File
 
@@ -87,9 +92,6 @@ BUCKET_NAME=$(cat config/outputs.json | python3 -c "import sys, json; print(json
 
 # List all objects
 aws s3 ls s3://$BUCKET_NAME/ --recursive
-
-# Or use the URL directly
-aws s3 ls s3://rearc-data-pipeline-data-08041c62/ --recursive
 ```
 
 **Note:** The bucket name includes a random suffix to ensure uniqueness. After deployment, the outputs file (`config/outputs.json`) is automatically updated with the current bucket name and all other infrastructure outputs.
@@ -231,7 +233,7 @@ aws s3 ls s3://rearc-data-pipeline-data-08041c62/ --recursive
 
 ## Code Implementation Details
 
-### Part 1: BLS Data Sync (`src/rearc/data_sync/bls.py`)
+### Part 1: BLS Data Sync (`src/rearc/data_sync/bls_sync.py`)
 
 The BLS data sync module implements a robust synchronization mechanism that:
 
@@ -423,6 +425,22 @@ def lambda_handler(event, context):
 
 ## Infrastructure Deployment
 
+### Directory structure
+
+```
+infrastructure/
+├── terraform/          # Terraform configuration
+│   ├── main.tf, variables.tf, outputs.tf, providers.tf
+│   ├── backend.tf, backend_resources.tf, backend.tf.example
+│   ├── s3.tf, iam.tf, iam_policies.tf, lambda.tf, sqs.tf
+│   ├── eventbridge.tf, s3_notifications.tf, monitoring.tf
+│   ├── environments.dev.tfvars, environments.prod.tfvars
+│   └── terraform.tfvars.example
+└── lambda/             # Lambda function code
+    ├── data_sync/      # lambda_function.py, requirements.txt
+    └── analytics/      # lambda_function.py, requirements.txt
+```
+
 ### Prerequisites
 
 1. **AWS Account**: Active AWS account with appropriate permissions
@@ -545,14 +563,14 @@ This will:
 
 ### Step 4: Review Terraform Plan
 
-Before applying changes, always review the plan:
+Before applying changes, always review the plan. Use `-var-file=environments.dev.tfvars` or `environments.prod.tfvars` to select the environment:
 
 ```bash
 # Generate and review the execution plan
-terraform plan
+terraform plan -var-file=environments.dev.tfvars
 
 # Save plan to file (optional)
-terraform plan -out=tfplan
+terraform plan -var-file=environments.dev.tfvars -out=tfplan
 ```
 
 The plan shows:
@@ -575,13 +593,13 @@ The plan shows:
 
 ```bash
 # Apply the configuration (creates/updates resources)
-terraform apply
+terraform apply -var-file=environments.dev.tfvars
 
 # Or use saved plan
 terraform apply tfplan
 
 # Auto-approve (skip confirmation prompt)
-terraform apply -auto-approve
+terraform apply -var-file=environments.dev.tfvars -auto-approve
 ```
 
 **During apply:**
@@ -682,11 +700,11 @@ aws logs tail /aws/lambda/$FUNC_NAME --follow
 #### Check EventBridge Schedule
 
 ```bash
-# List EventBridge rules
+# List EventBridge rules (rule name is {project}-{environment}-daily-schedule, e.g. rearc-data-pipeline-dev-daily-schedule)
 aws events list-rules --name-prefix rearc-data-pipeline
 
-# Check rule details
-aws events describe-rule --name rearc-data-pipeline-daily-schedule
+# Check rule details (use the Name from list-rules output)
+aws events describe-rule --name rearc-data-pipeline-dev-daily-schedule   # replace -dev- with -prod- for prod
 ```
 
 #### Verify SQS Queue
@@ -836,6 +854,17 @@ To migrate to remote state:
 terraform init -migrate-state
 ```
 
+### Destroying resources (cleanup)
+
+To tear down all resources for an environment:
+
+```bash
+cd infrastructure/terraform
+terraform destroy -var-file=environments.dev.tfvars   # or environments.prod.tfvars
+```
+
+Review the plan before confirming. Ensure you have backups of any data you need.
+
 ---
 
 ## Troubleshooting
@@ -868,7 +897,7 @@ lambda_timeout = 600  # 10 minutes
 
 **Issue**: Getting 403 errors when fetching BLS data.
 
-**Solution**: Ensure User-Agent header is set correctly. Check `src/rearc/data_sync/bls.py`:
+**Solution**: Ensure User-Agent header is set correctly. Check `src/rearc/data_sync/bls_parser.py` or `bls_s3_ops.py`:
 ```python
 USER_AGENT = "RearcDataQuest/1.0 (Contact: your-email@example.com)"
 ```

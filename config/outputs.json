@@ -11,8 +11,6 @@
   "sqs_queue_arn": "arn:aws:sqs:us-east-1:851725435783:rearc-data-pipeline-dev-s3-notifications",
   "cloudwatch_log_group_data_sync": "/aws/lambda/rearc-data-pipeline-dev-data-sync",
   "cloudwatch_log_group_analytics": "/aws/lambda/rearc-data-pipeline-dev-analytics",
-  "github_actions_role_arn": "arn:aws:iam::851725435783:role/rearc-data-pipeline-github-actions-role",
-  "github_oidc_provider_arn": "arn:aws:iam::851725435783:oidc-provider/token.actions.githubusercontent.com",
   "terraform_state_bucket_name": "rearc-data-pipeline-terraform-state-d93207c6",
   "terraform_state_bucket_arn": "arn:aws:s3:::rearc-data-pipeline-terraform-state-d93207c6",
   "terraform_state_lock_table_name": "rearc-data-pipeline-terraform-state-lock",
