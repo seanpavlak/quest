@@ -24,8 +24,8 @@ if [ ! -d "$TERRAFORM_DIR" ]; then
     exit 1
 fi
 
-# Check if terraform is initialized
-if [ ! -f "$TERRAFORM_DIR/.terraform/terraform.tfstate" ] && [ ! -f "$TERRAFORM_DIR/terraform.tfstate" ]; then
+# Check if terraform is initialized (.terraform exists; state may be local or S3)
+if [ ! -d "$TERRAFORM_DIR/.terraform" ]; then
     echo "Error: Terraform not initialized. Run 'terraform init' first."
     exit 1
 fi
@@ -33,9 +33,9 @@ fi
 # Change to terraform directory
 cd "$TERRAFORM_DIR"
 
-# Get terraform outputs and transform to outputs.json
+# Get terraform outputs and transform to outputs.json (default to dev when run locally)
 echo "Fetching Terraform outputs..."
-terraform output -json 2>/dev/null | python3 "$PROJECT_ROOT/scripts/terraform_outputs_to_json.py" --output "$OUTPUTS_FILE"
+terraform output -json 2>/dev/null | python3 "$PROJECT_ROOT/scripts/terraform_outputs_to_json.py" --output "$OUTPUTS_FILE" -e dev
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to get or process Terraform outputs. Make sure Terraform is initialized and deployed."

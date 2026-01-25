@@ -1,3 +1,5 @@
+# EventBridge rule and target for daily data sync Lambda
+
 resource "aws_cloudwatch_event_rule" "daily_schedule" {
   name                = "${local.resource_prefix}-daily-schedule"
   description         = "Trigger data sync Lambda daily"
@@ -19,4 +21,3 @@ resource "aws_lambda_permission" "allow_eventbridge" {
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.daily_schedule.arn
 }
-

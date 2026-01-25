@@ -1,10 +1,14 @@
-# S3 Bucket for Terraform State Storage
+# S3 and DynamoDB for Terraform state (backend resources)
 #
 # These backend resources (S3 state bucket and DynamoDB lock table) are referenced by
 # backend.tf for state storage and locking. scripts/clean_and_redeploy.sh explicitly
 # excludes them from "terraform destroy" so that the subsequent "terraform plan" can
 # acquire a state lock. Do not add them to a full destroy in automation.
-#
+
+resource "random_id" "state_bucket_suffix" {
+  byte_length = 4
+}
+
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "${var.project_name}-terraform-state-${random_id.state_bucket_suffix.hex}"
 
@@ -17,11 +21,6 @@ resource "aws_s3_bucket" "terraform_state" {
   )
 }
 
-resource "random_id" "state_bucket_suffix" {
-  byte_length = 4
-}
-
-# S3 Bucket Versioning for State Files
 resource "aws_s3_bucket_versioning" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -30,7 +29,6 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
   }
 }
 
-# S3 Bucket Encryption for State Files
 resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -41,7 +39,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" 
   }
 }
 
-# S3 Bucket Public Access Block (state should be private)
 resource "aws_s3_bucket_public_access_block" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -51,7 +48,6 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
   restrict_public_buckets = true
 }
 
-# S3 Bucket Ownership Controls for Terraform state bucket
 resource "aws_s3_bucket_ownership_controls" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -64,7 +60,6 @@ resource "aws_s3_bucket_ownership_controls" "terraform_state" {
   ]
 }
 
-# S3 Bucket Lifecycle Configuration (optional - keeps old state versions)
 resource "aws_s3_bucket_lifecycle_configuration" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -80,15 +75,18 @@ resource "aws_s3_bucket_lifecycle_configuration" "terraform_state" {
   }
 }
 
-# DynamoDB Table for Terraform State Locking
 resource "aws_dynamodb_table" "terraform_state_lock" {
-  name         = "${var.project_name}-terraform-state-lock" # Shared across environments
+  name         = "${var.project_name}-terraform-state-lock"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
 
   attribute {
     name = "LockID"
     type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = true
   }
 
   tags = merge(
@@ -98,8 +96,4 @@ resource "aws_dynamodb_table" "terraform_state_lock" {
       Purpose = "TerraformStateLocking"
     }
   )
-
-  point_in_time_recovery {
-    enabled = true
-  }
 }

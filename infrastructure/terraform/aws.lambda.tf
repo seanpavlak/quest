@@ -1,4 +1,5 @@
-# Archive Lambda function code
+# Lambda functions: data sync and analytics
+
 data "archive_file" "data_sync_zip" {
   type        = "zip"
   source_dir  = "${path.module}/../lambda/data_sync"
@@ -13,7 +14,6 @@ data "archive_file" "analytics_zip" {
   excludes    = ["__pycache__", "*.pyc", "requirements.txt"]
 }
 
-# CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "data_sync" {
   name              = "/aws/lambda/${local.resource_prefix}-data-sync"
   retention_in_days = var.log_retention_days
@@ -28,7 +28,6 @@ resource "aws_cloudwatch_log_group" "analytics" {
   tags = local.common_tags
 }
 
-# Data Sync Lambda Function
 resource "aws_lambda_function" "data_sync" {
   filename         = data.archive_file.data_sync_zip.output_path
   function_name    = "${local.resource_prefix}-data-sync"
@@ -55,7 +54,6 @@ resource "aws_lambda_function" "data_sync" {
   tags = local.common_tags
 }
 
-# Upload Analytics Lambda package to S3 (required for large packages >70MB)
 resource "aws_s3_object" "analytics_lambda_package" {
   bucket = aws_s3_bucket.lambda_packages.id
   key    = "analytics-${data.archive_file.analytics_zip.output_base64sha256}.zip"
@@ -63,7 +61,6 @@ resource "aws_s3_object" "analytics_lambda_package" {
   etag   = data.archive_file.analytics_zip.output_base64sha256
 }
 
-# Analytics Lambda Function (using S3 for large package)
 resource "aws_lambda_function" "analytics" {
   s3_bucket        = aws_s3_bucket.lambda_packages.id
   s3_key           = aws_s3_object.analytics_lambda_package.key
@@ -90,11 +87,9 @@ resource "aws_lambda_function" "analytics" {
   tags = local.common_tags
 }
 
-# SQS Event Source Mapping for Analytics Lambda
 resource "aws_lambda_event_source_mapping" "analytics_sqs" {
   event_source_arn = aws_sqs_queue.s3_notifications.arn
   function_name    = aws_lambda_function.analytics.arn
   batch_size       = 1
   enabled          = true
 }
-

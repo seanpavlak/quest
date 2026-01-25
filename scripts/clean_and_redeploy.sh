@@ -6,6 +6,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+AUTO_YES=false
+[[ "${1:-}" == "-y" || "${1:-}" == "--yes" ]] && AUTO_YES=true
 
 cd "$REPO_ROOT"
 
@@ -20,11 +22,12 @@ echo "  3. Reinstall dependencies (Linux-compatible)"
 echo "  4. Redeploy everything"
 echo "  5. Test end-to-end"
 echo ""
-read -p "Continue? (yes/no): " confirm
-
-if [ "$confirm" != "yes" ]; then
+if ! $AUTO_YES; then
+  read -p "Continue? (yes/no): " confirm
+  if [ "$confirm" != "yes" ]; then
     echo "Aborted."
     exit 1
+  fi
 fi
 
 echo ""
@@ -35,7 +38,7 @@ cd infrastructure/terraform
 terraform init -input=false
 
 # Destroy only non-backend resources so the subsequent plan/apply can acquire a state lock.
-# The backend (S3 state bucket and DynamoDB lock table in backend_resources.tf) must persist;
+# The backend (S3 state bucket and DynamoDB lock table in aws.backend.tf) must persist;
 # if they are destroyed, "terraform plan" fails because the lock table no longer exists.
 BACKEND_PATTERN='^random_id\.state_bucket_suffix$|^aws_s3_bucket\.terraform_state$|^aws_s3_bucket_versioning\.terraform_state$|^aws_s3_bucket_server_side_encryption_configuration\.terraform_state$|^aws_s3_bucket_public_access_block\.terraform_state$|^aws_s3_bucket_ownership_controls\.terraform_state$|^aws_s3_bucket_lifecycle_configuration\.terraform_state$|^aws_dynamodb_table\.terraform_state_lock$'
 
@@ -95,11 +98,12 @@ echo "Planning deployment..."
 terraform plan -out=tfplan
 
 echo ""
-read -p "Review plan above. Deploy? (yes/no): " deploy_confirm
-
-if [ "$deploy_confirm" != "yes" ]; then
+if ! $AUTO_YES; then
+  read -p "Review plan above. Deploy? (yes/no): " deploy_confirm
+  if [ "$deploy_confirm" != "yes" ]; then
     echo "Deployment aborted."
     exit 1
+  fi
 fi
 
 echo ""

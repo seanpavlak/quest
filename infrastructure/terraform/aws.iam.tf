@@ -1,4 +1,5 @@
-# IAM Role for Data Sync Lambda
+# IAM roles and policies for Lambda functions
+
 resource "aws_iam_role" "data_sync_lambda" {
   name = "${local.resource_prefix}-data-sync-lambda-role"
 
@@ -18,7 +19,6 @@ resource "aws_iam_role" "data_sync_lambda" {
   tags = local.common_tags
 }
 
-# IAM Policy for Data Sync Lambda
 resource "aws_iam_role_policy" "data_sync_lambda" {
   name = "${local.resource_prefix}-data-sync-lambda-policy"
   role = aws_iam_role.data_sync_lambda.id
@@ -56,7 +56,6 @@ resource "aws_iam_role_policy" "data_sync_lambda" {
   })
 }
 
-# IAM Role for Analytics Lambda
 resource "aws_iam_role" "analytics_lambda" {
   name = "${local.resource_prefix}-analytics-lambda-role"
 
@@ -76,7 +75,6 @@ resource "aws_iam_role" "analytics_lambda" {
   tags = local.common_tags
 }
 
-# IAM Policy for Analytics Lambda
 resource "aws_iam_role_policy" "analytics_lambda" {
   name = "${local.resource_prefix}-analytics-lambda-policy"
   role = aws_iam_role.analytics_lambda.id
@@ -119,4 +117,3 @@ resource "aws_iam_role_policy" "analytics_lambda" {
     ]
   })
 }
-

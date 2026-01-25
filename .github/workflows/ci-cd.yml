@@ -37,7 +37,7 @@ on:
 env:
   AWS_REGION: us-east-1
   TERRAFORM_VERSION: 1.6.0
-  PYTHON_VERSION: '3.11'
+  PYTHON_VERSION: '3.12'
 
 jobs:
   test:
@@ -222,9 +222,9 @@ jobs:
           # Analytics Lambda
           cd ../analytics
           rm -rf boto3 botocore pandas numpy pytz tzdata dateutil jmespath s3transfer urllib3 rearc *.dist-info __pycache__ bin 2>/dev/null || true
-          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir boto3 --quiet
-          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir "numpy<2.0" --quiet
-          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir pandas --quiet
+          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.12 --only-binary=:all: --no-cache-dir boto3 --quiet
+          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.12 --only-binary=:all: --no-cache-dir "numpy<2.0" --quiet
+          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.12 --only-binary=:all: --no-cache-dir pandas --quiet
           mkdir -p rearc
           cp -r ../../../src/rearc/* rearc/
 
@@ -318,9 +318,9 @@ jobs:
           # Analytics Lambda
           cd ../analytics
           rm -rf boto3 botocore pandas numpy pytz tzdata dateutil jmespath s3transfer urllib3 rearc *.dist-info __pycache__ bin 2>/dev/null || true
-          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir boto3 --quiet
-          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir "numpy<2.0" --quiet
-          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.11 --only-binary=:all: --no-cache-dir pandas --quiet
+          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.12 --only-binary=:all: --no-cache-dir boto3 --quiet
+          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.12 --only-binary=:all: --no-cache-dir "numpy<2.0" --quiet
+          pip install --platform manylinux2014_x86_64 --target . --implementation cp --python-version 3.12 --only-binary=:all: --no-cache-dir pandas --quiet
           mkdir -p rearc
           cp -r ../../../src/rearc/* rearc/
 

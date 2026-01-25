@@ -1,3 +1,5 @@
+# SQS queue for S3 → Analytics Lambda notifications
+
 resource "aws_sqs_queue" "s3_notifications" {
   name                       = "${local.resource_prefix}-s3-notifications"
   message_retention_seconds  = 345600 # 4 days
@@ -28,4 +30,3 @@ resource "aws_sqs_queue_policy" "s3_notifications" {
     ]
   })
 }
-

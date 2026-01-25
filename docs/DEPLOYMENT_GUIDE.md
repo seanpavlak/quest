@@ -181,11 +181,11 @@ The data bucket is **publicly readable** for the assignment so you can "share wi
 #### 1. EventBridge (CloudWatch Events)
 - **Purpose**: Schedule daily execution of data sync Lambda
 - **Schedule**: Daily at 2 AM UTC (configurable via `schedule_expression` variable)
-- **Configuration**: `infrastructure/terraform/eventbridge.tf`
+- **Configuration**: `infrastructure/terraform/aws.eventbridge.tf`
 
 #### 2. Data Sync Lambda Function
 - **Function Name**: `{project_name}-data-sync`
-- **Runtime**: Python 3.11
+- **Runtime**: Python 3.12
 - **Timeout**: 300 seconds (5 minutes)
 - **Memory**: 512 MB
 - **Handler**: `lambda_function.lambda_handler`
@@ -198,24 +198,24 @@ The data bucket is **publicly readable** for the assignment so you can "share wi
   - Versioning enabled
   - Server-side encryption (AES256)
   - Publicly readable for the assignment (Part 1 "share with us a link")
-- **Configuration**: `infrastructure/terraform/s3.tf`
+- **Configuration**: `infrastructure/terraform/aws.buckets.tf`
 
 #### 4. S3 Event Notifications
 - **Trigger**: Object creation events
 - **Filter**: Prefix `population_data_`, Suffix `.json`
 - **Destination**: SQS Queue
-- **Configuration**: `infrastructure/terraform/s3_notifications.tf`
+- **Configuration**: `infrastructure/terraform/aws.buckets.tf`
 
 #### 5. SQS Queue
 - **Queue Name**: `{project_name}-s3-notifications`
 - **Message Retention**: 4 days (345600 seconds)
 - **Visibility Timeout**: Lambda timeout + 60 seconds (e.g. 6 minutes when `lambda_timeout` = 300)
 - **Purpose**: Buffer S3 events for Analytics Lambda
-- **Configuration**: `infrastructure/terraform/sqs.tf`
+- **Configuration**: `infrastructure/terraform/aws.sqs.tf`
 
 #### 6. Analytics Lambda Function
 - **Function Name**: `{project_name}-analytics`
-- **Runtime**: Python 3.11
+- **Runtime**: Python 3.12
 - **Timeout**: 300 seconds (5 minutes)
 - **Memory**: 512 MB
 - **Handler**: `lambda_function.lambda_handler`
@@ -432,11 +432,12 @@ def lambda_handler(event, context):
 
 ```
 infrastructure/
-├── terraform/          # Terraform configuration
-│   ├── main.tf, variables.tf, outputs.tf, providers.tf
-│   ├── backend.tf, backend_resources.tf, backend.tf.example
-│   ├── s3.tf, iam.tf, iam_policies.tf, lambda.tf, sqs.tf
-│   ├── eventbridge.tf, s3_notifications.tf, monitoring.tf
+├── terraform/          # Terraform configuration (dots = provider.service)
+│   ├── main.tf, variables.tf, outputs.tf, locals.tf
+│   ├── versions.tf, providers.tf
+│   ├── backend.tf, backend.tf.example
+│   ├── aws.backend.tf, aws.buckets.tf, aws.eventbridge.tf
+│   ├── aws.iam.tf, aws.lambda.tf, aws.monitoring.tf, aws.sqs.tf
 │   ├── environments.dev.tfvars, environments.prod.tfvars
 │   └── terraform.tfvars.example
 └── lambda/             # Lambda function code
@@ -491,15 +492,15 @@ cd infrastructure/lambda/analytics
 
 # Install Linux-compatible dependencies
 pip install --platform manylinux2014_x86_64 --target . \
-    --implementation cp --python-version 3.11 \
+    --implementation cp --python-version 3.12 \
     --only-binary=:all: --no-cache-dir boto3
 
 pip install --platform manylinux2014_x86_64 --target . \
-    --implementation cp --python-version 3.11 \
+    --implementation cp --python-version 3.12 \
     --only-binary=:all: --no-cache-dir "numpy<2.0"
 
 pip install --platform manylinux2014_x86_64 --target . \
-    --implementation cp --python-version 3.11 \
+    --implementation cp --python-version 3.12 \
     --only-binary=:all: --no-cache-dir pandas
 
 # Copy rearc package
@@ -721,6 +722,17 @@ aws sqs get-queue-attributes \
     --queue-url $QUEUE_URL \
     --attribute-names All
 ```
+
+### Clean deploy and full reset
+
+Two scripts support tearing down and redeploying to confirm infrastructure works from a clean slate:
+
+| Script | What it does |
+|--------|---------------|
+| **`./scripts/clean_and_redeploy.sh`** | Destroys all **app** resources (keeps S3 state bucket and DynamoDB lock), cleans and reinstalls Lambda deps, then applies and runs smoke tests. Use `-y` to skip prompts. |
+| **`./scripts/full_reset_redeploy.sh`** | Destroys **everything** (including the Terraform state backend), switches to local state, applies from scratch (new backend + app), migrates state to the new S3 backend, then runs smoke tests. Use `-y` to skip prompts. |
+
+After a full reset, `backend.tf` is updated with the new state bucket and lock table. Run `./scripts/refresh_outputs.sh` to refresh `config/outputs.json`.
 
 ---
 
