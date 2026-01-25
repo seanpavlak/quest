@@ -31,6 +31,7 @@ def sync_file(
     source_url: str,
     s3_key: str
 ) -> bool:
+    """Fetch from URL and upload to S3 only if content changed (MD5 vs ETag)."""
     logger.debug(f"Checking file: {s3_key}")
     content = fetch_url_content(source_url)
     if content is None:
@@ -52,6 +53,7 @@ def sync_directory_iterative(
     bucket_name: str,
     base_url: str
 ) -> Set[str]:
+    """BFS over Apache-style dir listings; syncs each file, returns set of synced S3 keys."""
     discovered_files: Set[str] = set()
     directories_to_process = deque([''])
     logger.info("Starting iterative directory sync")
@@ -94,6 +96,7 @@ def sync_bls_data(
     archive_bucket: Optional[str] = None,
     archive_prefix: str = DEFAULT_ARCHIVE_PREFIX
 ) -> bool:
+    """Sync BLS source to S3, then archive any S3 BLS files no longer at source."""
     s3_client = boto3.client('s3', region_name=region)
     base_url = os.environ.get('BLS_SOURCE_URL', BLS_BASE_URL)
     

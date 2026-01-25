@@ -20,10 +20,12 @@ VALIDATION_TIMEOUT = 5
 
 
 def calculate_md5(content: bytes) -> str:
+    """MD5 hex digest of bytes (used to compare with S3 ETag)."""
     return hashlib.md5(content).hexdigest()
 
 
 def get_s3_object_etag(s3_client: Any, bucket: str, key: str) -> Optional[str]:
+    """Head object; return ETag (unquoted) or None if missing/error."""
     try:
         response = s3_client.head_object(Bucket=bucket, Key=key)
         return response.get('ETag', '').strip('"')
@@ -44,6 +46,7 @@ def upload_file_to_s3(
     key: str,
     content: bytes
 ) -> bool:
+    """Put object to S3; content-type inferred from .txt extension."""
     try:
         content_type = 'text/plain' if key.endswith('.txt') else 'application/octet-stream'
         s3_client.put_object(
@@ -66,6 +69,7 @@ def archive_file_to_s3(
     archive_bucket: Optional[str] = None,
     archive_prefix: str = DEFAULT_ARCHIVE_PREFIX
 ) -> bool:
+    """Copy object to archive (with timestamp in name), then delete original."""
     try:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         if '/' in source_key:
@@ -102,6 +106,7 @@ def archive_file_to_s3(
 
 
 def delete_file_from_s3(s3_client: Any, bucket: str, key: str) -> bool:
+    """Delete S3 object; returns False on client error."""
     try:
         s3_client.delete_object(Bucket=bucket, Key=key)
         logger.info(f"Deleted: {key}")
@@ -112,6 +117,7 @@ def delete_file_from_s3(s3_client: Any, bucket: str, key: str) -> bool:
 
 
 def list_s3_objects(s3_client: Any, bucket: str, prefix: str = '') -> Set[str]:
+    """List all object keys under bucket/prefix (paginated)."""
     objects: Set[str] = set()
     try:
         paginator = s3_client.get_paginator('list_objects_v2')
@@ -125,6 +131,7 @@ def list_s3_objects(s3_client: Any, bucket: str, prefix: str = '') -> Set[str]:
 
 
 def validate_directory_exists(base_url: str, path: str) -> bool:
+    """HEAD base_url/path; True if 200, else False."""
     test_url = urljoin(base_url, path)
     if not test_url.endswith('/'):
         test_url += '/'

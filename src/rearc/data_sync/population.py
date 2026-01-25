@@ -19,6 +19,7 @@ POPULATION_FILE_PREFIX = "population_data_"
 
 
 def fetch_population_data(api_url: str) -> Optional[Dict[str, Any]]:
+    """GET JSON from DataUSA-style API; returns parsed data or None on error."""
     try:
         logger.info(f"Fetching data from: {api_url}")
         response = requests.get(api_url, timeout=REQUEST_TIMEOUT)
@@ -44,6 +45,7 @@ def save_to_s3(
     key: Optional[str] = None,
     region: str = DEFAULT_REGION
 ) -> bool:
+    """Save JSON dict to S3; key defaults to population_data_<timestamp>.json."""
     if key is None:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         key = f"{POPULATION_FILE_PREFIX}{timestamp}.json"
@@ -70,6 +72,7 @@ def fetch_and_save_population_data(
     region: str = DEFAULT_REGION,
     key: Optional[str] = None
 ) -> bool:
+    """Fetch from DataUSA API and save to S3; skips save if API returns empty data."""
     logger.info(f"Starting population data fetch and save to bucket: {bucket_name}")
     api_url = os.environ.get('DATAUSA_API_URL', DATAUSA_API_URL)
     data = fetch_population_data(api_url)

@@ -13,6 +13,7 @@ REQUEST_TIMEOUT = 30
 
 
 def parse_directory_listing(html_content: str) -> Tuple[List[str], List[str]]:
+    """Parse Apache-style HTML index: returns (file_names, directory_names)."""
     files: List[str] = []
     directories: List[str] = []
     link_pattern = r'<a\s+href=["\']([^"\']+)["\']'
@@ -41,6 +42,7 @@ def parse_directory_listing(html_content: str) -> Tuple[List[str], List[str]]:
 
 
 def fetch_url_content(url: str) -> Optional[bytes]:
+    """GET url; returns raw bytes or None on error."""
     headers = {'User-Agent': USER_AGENT}
     try:
         response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
@@ -52,6 +54,7 @@ def fetch_url_content(url: str) -> Optional[bytes]:
 
 
 def discover_files_and_directories(base_url: str, current_path: str = '') -> Tuple[List[str], List[str]]:
+    """Fetch dir listing at base_url/current_path and parse into files and subdirs."""
     url = urljoin(base_url, current_path)
     if not url.endswith('/'):
         url += '/'

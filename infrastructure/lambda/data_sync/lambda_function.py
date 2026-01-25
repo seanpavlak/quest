@@ -14,6 +14,7 @@ DEFAULT_ARCHIVE_PREFIX = 'archive/'
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """Run BLS sync and population fetch; return status and any errors."""
     bucket_name = os.environ.get('S3_BUCKET_NAME')
     region = os.environ.get('AWS_REGION', DEFAULT_REGION)
     archive_bucket = os.environ.get('S3_ARCHIVE_BUCKET')

@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def query1_population_stats(population_df: pd.DataFrame) -> Dict[str, float]:
+    """Mean and std dev of population for years 2013-2018."""
     logger.info("Query 1: Population Statistics (2013-2018)")
     if population_df.empty or 'Year' not in population_df.columns or 'Population' not in population_df.columns:
         logger.warning("Population data is empty or missing required columns (Year, Population)")
@@ -33,6 +34,7 @@ def query1_population_stats(population_df: pd.DataFrame) -> Dict[str, float]:
 
 
 def query2_best_year_per_series(bls_df: pd.DataFrame) -> pd.DataFrame:
+    """For each series_id, return the year with the highest sum of values."""
     logger.info("Query 2: Best Year per Series ID")
     bls_df = bls_df.copy()
     bls_df.columns = bls_df.columns.str.strip()
@@ -55,6 +57,7 @@ def query3_combined_report(
     bls_df: pd.DataFrame,
     population_df: pd.DataFrame
 ) -> pd.DataFrame:
+    """PRS30006032 Q01 BLS data joined with population by year."""
     logger.info("Query 3: Combined Report")
     bls_df = bls_df.copy()
     bls_df.columns = bls_df.columns.str.strip()

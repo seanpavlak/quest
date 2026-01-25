@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
+    """Parse CLI args and run sync-bls, fetch-population, or sync-all."""
     parser = argparse.ArgumentParser(description='Rearc Data Quest Pipeline')
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
     bls_parser = subparsers.add_parser('sync-bls', help='Sync BLS data to S3')

@@ -27,6 +27,7 @@ s3_client = boto3.client('s3')
 
 
 def load_data_from_s3(bucket_name: str, key: str) -> str:
+    """Get S3 object body as UTF-8 string; raises on error."""
     try:
         response = s3_client.get_object(Bucket=bucket_name, Key=key)
         return response['Body'].read().decode('utf-8')
@@ -36,6 +37,7 @@ def load_data_from_s3(bucket_name: str, key: str) -> str:
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """Process SQS/S3 notifications: on population file, run query1/2/3 and return results."""
     bucket_name = os.environ.get('S3_BUCKET_NAME')
     bls_file_key = os.environ.get('BLS_FILE_KEY', DEFAULT_BLS_FILE_KEY)
     
