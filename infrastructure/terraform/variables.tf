@@ -1,0 +1,74 @@
+# Variables (alphabetical)
+# https://developer.hashicorp.com/terraform/language/style
+
+variable "aws_region" {
+  description = "AWS region for resources"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "bls_source_url" {
+  description = "BLS data source URL"
+  type        = string
+  default     = "https://download.bls.gov/pub/time.series/pr/"
+}
+
+variable "datausa_api_url" {
+  description = "DataUSA API URL"
+  type        = string
+  default     = "https://honolulu-api.datausa.io/tesseract/data.jsonrecords?cube=acs_yg_total_population_1&drilldowns=Year%2CNation&locale=en&measures=Population"
+}
+
+variable "environment" {
+  description = "Environment name (dev, prod, staging, etc.)"
+  type        = string
+  default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "prod", "staging"], var.environment)
+    error_message = "Environment must be one of: dev, prod, staging"
+  }
+}
+
+variable "lambda_memory" {
+  description = "Lambda function memory in MB"
+  type        = number
+  default     = 512
+}
+
+variable "lambda_timeout" {
+  description = "Lambda function timeout in seconds"
+  type        = number
+  default     = 300
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention in days"
+  type        = number
+  default     = 7
+
+  validation {
+    condition     = var.log_retention_days >= 1 && var.log_retention_days <= 3653
+    error_message = "Log retention must be between 1 and 3653 days."
+  }
+}
+
+variable "project_name" {
+  description = "Name prefix for all resources"
+  type        = string
+  default     = "rearc-data-pipeline"
+}
+
+variable "schedule_expression" {
+  description = "EventBridge schedule expression for data sync Lambda"
+  type        = string
+  default     = "cron(0 2 * * ? *)" # Daily at 2 AM UTC
+}
+
+variable "tags" {
+  description = "Tags to apply to all resources (Environment will be set automatically from environment variable)"
+  type        = map(string)
+  default = {
+    Project = "RearcDataQuest"
+  }
+}

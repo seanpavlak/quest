@@ -1,5 +1,8 @@
 # Rearc Data Quest
 
+![CI/CD Pipeline](https://github.com/seanpavlak/quest/actions/workflows/ci-cd.yml/badge.svg)
+![Code Coverage](https://codecov.io/gh/seanpavlak/quest/branch/master/graph/badge.svg?token=)
+
 ### Q. What is this quest?
 It is a fun way to assess your data skills. It is also a good representative sample of the work we do at Rearc.
 
@@ -87,11 +90,71 @@ This quest consists of 4 different parts. Putting all 4 parts together we will h
 You can do as many as you like. We suspect though that once you start you won't be able to stop. It's addictive.
 
 ### Q. What do I have to submit?
-1. Link to data in S3 and source code (Step 1)
-2. Source code (Step 2)
-3. Source code in .ipynb file format and results (Step 3)
-4. Source code of the data pipeline infrastructure (Step 4)
-5. Any README or documentation you feel would help us navigate your quest.
+
+#### ✅ Submission Checklist
+
+All required submission items are completed and documented below:
+
+1. **Link to data in S3 and source code (Part 1)**
+   - ✅ **S3 Bucket Link**: See `config/outputs.json` → `example_urls.bucket_root` (data bucket is publicly readable for the assignment)
+   - ✅ **Main BLS File**: See `config/outputs.json` → `example_urls.bls_main_file`
+   - ✅ **Source Code**: [`src/rearc/data_sync/bls_sync.py`](src/rearc/data_sync/bls_sync.py) - BLS data sync implementation
+   - ✅ **Documentation**: See [Part 1 Implementation](docs/DEPLOYMENT_GUIDE.md#part-1-bls-data-sync) for details
+
+2. **Source code (Part 2)**
+   - ✅ **Source Code**: [`src/rearc/data_sync/population.py`](src/rearc/data_sync/population.py) - Population API fetch implementation
+   - ✅ **Population Data Files**: Available in S3 with pattern `population_data_*.json`
+   - ✅ **Documentation**: See [Part 2 Implementation](docs/DEPLOYMENT_GUIDE.md#part-2-population-api-fetch) for details
+
+3. **Source code in .ipynb file format and results (Part 3)**
+   - ✅ **Jupyter Notebook**: [`notebooks/data_analysis.ipynb`](notebooks/data_analysis.ipynb)
+   - ✅ **Analytics Queries**: [`src/rearc/analytics/queries.py`](src/rearc/analytics/queries.py)
+   - ✅ **Test Results**: See [notebooks/data_analysis.ipynb](notebooks/data_analysis.ipynb) for query results and analysis
+   - ✅ **Documentation**: See [Part 3 Implementation](docs/DEPLOYMENT_GUIDE.md#part-3-analytics-queries) for details
+
+4. **Source code of the data pipeline infrastructure (Part 4)**
+   - ✅ **Terraform Infrastructure**: [`infrastructure/terraform/`](infrastructure/terraform/) - Complete IaC configuration
+   - ✅ **Lambda Functions**: 
+     - Data Sync: [`infrastructure/lambda/data_sync/`](infrastructure/lambda/data_sync/)
+     - Analytics: [`infrastructure/lambda/analytics/`](infrastructure/lambda/analytics/)
+   - ✅ **CI/CD Pipeline**: [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml) - Automated deployment
+   - ✅ **Deployment Guide**: [Complete Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
+   - ✅ **Architecture**: See [Architecture Overview](docs/DEPLOYMENT_GUIDE.md#architecture-overview)
+
+5. **README or documentation**
+   - ✅ **Main README**: This file
+   - ✅ **Deployment Guide**: [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Comprehensive deployment instructions
+   - ✅ **Tests**: `pytest tests/ -v` (test modules in `tests/`)
+
+#### 🚀 Quick Links
+
+- **S3 Data Bucket**: See `config/outputs.json` (`s3_bucket_url`, `example_urls`)
+- **GitHub Repository**: [seanpavlak/quest](https://github.com/seanpavlak/quest)
+- **CI/CD Status**: [GitHub Actions](https://github.com/seanpavlak/quest/actions)
+- **Code Coverage**: [Codecov Report](https://codecov.io/gh/seanpavlak/quest)
+- **Deployment Guide**: [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
+- **Infrastructure Outputs**: [`config/outputs.json`](config/outputs.json)
+
+#### 📊 Infrastructure Status
+
+Infrastructure is deployed to **dev** and **prod** environments:
+
+- **Dev**: Auto-deploys on merge to `master` via CI/CD
+- **Prod**: Manual deployment only (via GitHub Actions workflow dispatch)
+
+**Dev Environment** (from [`config/outputs.json`](config/outputs.json)):
+- See `config/outputs.json` for current dev infrastructure outputs (S3 bucket, Lambda ARNs, etc.)
+
+**Prod Environment** (from [`config/outputs-prod.json`](config/outputs-prod.json)):
+- See `config/outputs-prod.json` for current prod infrastructure outputs
+
+> **Note**: Infrastructure outputs are automatically refreshed:
+> - After each CI/CD deployment (dev on merge, prod on manual deployment)
+> - Daily via scheduled workflow (at 1 AM UTC) - syncs both dev and prod
+> - On manual trigger via GitHub Actions
+> - To manually refresh outputs, run `./scripts/refresh_outputs.sh`
+>
+> **GitHub Actions** uses the **rearc-data-pipeline** IAM user. Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in repo **Settings → Secrets and variables → Actions**.
 
 ### Q. How do I share the submission?
 Your submission should be emailed back to us as one or both of the following:
@@ -128,3 +191,4 @@ How could you add information to your programmatic access requests to let BLS co
 
 ### Q. Can I use AI to assist me?
 You may use AI as a reference tool but there will be a strong expectation to exhibit the same expertise and understanding from your submission in your interview. In addition we encourage you to be open about any usage! Please document what you used, what your prompts were, how it helped, what it got wrong, etc.
+

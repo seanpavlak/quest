@@ -1,0 +1,128 @@
+name: Sync Infrastructure Outputs
+
+# This workflow runs periodically to ensure outputs.json stays in sync with actual infrastructure
+# It also runs when manually triggered or when infrastructure changes are detected
+
+on:
+  schedule:
+    # Run daily at 1 AM UTC (before the daily Lambda sync at 2 AM UTC)
+    - cron: '0 1 * * *'
+  workflow_dispatch:  # Allows manual triggering
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'infrastructure/terraform/**'
+      - 'scripts/**'
+
+env:
+  AWS_REGION: us-east-1
+  TERRAFORM_VERSION: 1.6.0
+
+jobs:
+  sync-outputs-dev:
+    name: Sync Dev Infrastructure Outputs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init (Dev)
+        working-directory: infrastructure/terraform
+        run: |
+          terraform init \
+            -backend-config="key=rearc-data-pipeline/dev/terraform.tfstate" \
+            -reconfigure
+
+      - name: Refresh Terraform State (Dev)
+        working-directory: infrastructure/terraform
+        run: terraform apply -refresh-only -var-file="environments.dev.tfvars" -auto-approve
+
+      - name: Update outputs.json (Dev)
+        run: |
+          cd infrastructure/terraform
+          terraform output -json | python3 ../../scripts/terraform_outputs_to_json.py -o ../../config/outputs.json -e dev
+
+      - name: Commit and push outputs.json
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git pull --rebase || true
+          git add config/outputs.json
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: sync dev infrastructure outputs [skip ci]"
+            git push
+            echo "✅ Updated outputs.json with dev infrastructure state"
+          else
+            echo "ℹ️ outputs.json (dev) already up to date"
+          fi
+
+  sync-outputs-prod:
+    name: Sync Prod Infrastructure Outputs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init (Prod)
+        working-directory: infrastructure/terraform
+        run: |
+          terraform init \
+            -backend-config="key=rearc-data-pipeline/prod/terraform.tfstate" \
+            -reconfigure
+
+      - name: Refresh Terraform State (Prod)
+        working-directory: infrastructure/terraform
+        run: terraform apply -refresh-only -var-file="environments.prod.tfvars" -auto-approve
+
+      - name: Update outputs-prod.json
+        run: |
+          cd infrastructure/terraform
+          terraform output -json | python3 ../../scripts/terraform_outputs_to_json.py -o ../../config/outputs-prod.json -e prod
+
+      - name: Commit and push outputs-prod.json
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git pull --rebase || true
+          git add config/outputs-prod.json
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: sync prod infrastructure outputs [skip ci]"
+            git push
+            echo "✅ Updated outputs-prod.json with prod infrastructure state"
+          else
+            echo "ℹ️ outputs-prod.json (prod) already up to date"
+          fi
