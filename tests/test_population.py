@@ -1,13 +1,9 @@
-"""
-Unit tests for Population API functions.
-Tests API fetching, S3 saving, and error handling.
-"""
+"""Population API tests: fetch, save to S3, fetch_and_save, errors."""
 import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
 from datetime import datetime
 
-# Add src to path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root / 'src'))
 
@@ -21,12 +17,8 @@ from rearc.data_sync.population import (
 
 
 class TestFetchPopulationData:
-    """Test population data fetching from API."""
-    
     @patch('rearc.data_sync.population.requests.get')
     def test_fetch_population_data_success(self, mock_get: Mock) -> None:
-        """Test successful API fetch."""
-        # Mock API response
         mock_response = Mock()
         mock_response.json.return_value = {
             'data': [
@@ -46,7 +38,6 @@ class TestFetchPopulationData:
     
     @patch('rearc.data_sync.population.requests.get')
     def test_fetch_population_data_http_error(self, mock_get: Mock) -> None:
-        """Test API fetch with HTTP error."""
         import requests
         mock_get.side_effect = requests.exceptions.HTTPError("404 Not Found")
         
@@ -56,7 +47,6 @@ class TestFetchPopulationData:
     
     @patch('rearc.data_sync.population.requests.get')
     def test_fetch_population_data_invalid_json(self, mock_get: Mock) -> None:
-        """Test API fetch with invalid JSON."""
         import json
         mock_response = Mock()
         mock_response.json.side_effect = json.JSONDecodeError("Invalid JSON", "", 0)
@@ -69,11 +59,8 @@ class TestFetchPopulationData:
 
 
 class TestSaveToS3:
-    """Test saving population data to S3."""
-    
     @patch('rearc.data_sync.population.boto3.client')
     def test_save_to_s3_success(self, mock_boto3_client: Mock) -> None:
-        """Test successful save to S3."""
         mock_s3_client = Mock()
         mock_boto3_client.return_value = mock_s3_client
         
@@ -90,7 +77,6 @@ class TestSaveToS3:
     
     @patch('rearc.data_sync.population.boto3.client')
     def test_save_to_s3_timestamp_key(self, mock_boto3_client: Mock) -> None:
-        """Test save with timestamp-based key."""
         mock_s3_client = Mock()
         mock_boto3_client.return_value = mock_s3_client
         
@@ -106,7 +92,6 @@ class TestSaveToS3:
     
     @patch('rearc.data_sync.population.boto3.client')
     def test_save_to_s3_error(self, mock_boto3_client: Mock) -> None:
-        """Test save with S3 error."""
         from botocore.exceptions import ClientError
         mock_s3_client = Mock()
         error_response = {'Error': {'Code': 'AccessDenied'}}
@@ -121,8 +106,6 @@ class TestSaveToS3:
 
 
 class TestFetchAndSavePopulationData:
-    """Test full fetch and save workflow."""
-    
     @patch('rearc.data_sync.population.save_to_s3')
     @patch('rearc.data_sync.population.fetch_population_data')
     def test_fetch_and_save_success(
@@ -130,7 +113,6 @@ class TestFetchAndSavePopulationData:
         mock_fetch: Mock,
         mock_save: Mock
     ) -> None:
-        """Test successful fetch and save."""
         mock_fetch.return_value = {'data': [{'Year': 2013, 'Population': 316128839}]}
         mock_save.return_value = True
         
@@ -147,7 +129,6 @@ class TestFetchAndSavePopulationData:
         mock_fetch: Mock,
         mock_save: Mock
     ) -> None:
-        """Test fetch and save when fetch fails."""
         mock_fetch.return_value = None
         
         result = fetch_and_save_population_data('test-bucket', 'us-east-1')
@@ -163,7 +144,6 @@ class TestFetchAndSavePopulationData:
         mock_fetch: Mock,
         mock_save: Mock
     ) -> None:
-        """Test fetch and save when save fails."""
         mock_fetch.return_value = {'data': [{'Year': 2013, 'Population': 316128839}]}
         mock_save.return_value = False
         
@@ -180,7 +160,6 @@ class TestFetchAndSavePopulationData:
         mock_fetch: Mock,
         mock_save: Mock
     ) -> None:
-        """Test that empty data array skips save to avoid triggering analytics on empty file."""
         mock_fetch.return_value = {'data': []}
         result = fetch_and_save_population_data('test-bucket', 'us-east-1')
         assert result is False

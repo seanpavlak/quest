@@ -1,8 +1,4 @@
-"""
-Population Data API Fetch Module
-
-Fetches population data from the DataUSA API and saves it to S3.
-"""
+"""Fetch population data from DataUSA API and save to S3."""
 
 import json
 import logging
@@ -16,29 +12,13 @@ from botocore.exceptions import ClientError, BotoCoreError
 
 logger = logging.getLogger(__name__)
 
-# DataUSA API URL
 DATAUSA_API_URL = "https://honolulu-api.datausa.io/tesseract/data.jsonrecords?cube=acs_yg_total_population_1&drilldowns=Year%2CNation&locale=en&measures=Population"
-
-# Request timeout in seconds
 REQUEST_TIMEOUT = 30
-
-# Default S3 region
 DEFAULT_REGION = 'us-east-1'
-
-# Population data file prefix
 POPULATION_FILE_PREFIX = "population_data_"
 
 
 def fetch_population_data(api_url: str) -> Optional[Dict[str, Any]]:
-    """
-    Fetch population data from DataUSA API.
-    
-    Args:
-        api_url: URL of the DataUSA API endpoint
-        
-    Returns:
-        JSON response as dictionary, or None if error
-    """
     try:
         logger.info(f"Fetching data from: {api_url}")
         response = requests.get(api_url, timeout=REQUEST_TIMEOUT)
@@ -64,18 +44,6 @@ def save_to_s3(
     key: Optional[str] = None,
     region: str = DEFAULT_REGION
 ) -> bool:
-    """
-    Save JSON data to S3.
-    
-    Args:
-        bucket_name: Name of the S3 bucket
-        data: Dictionary to save as JSON
-        key: S3 object key (filename). If None, uses timestamp-based name
-        region: AWS region
-        
-    Returns:
-        True if successful, False otherwise
-    """
     if key is None:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         key = f"{POPULATION_FILE_PREFIX}{timestamp}.json"
@@ -102,34 +70,15 @@ def fetch_and_save_population_data(
     region: str = DEFAULT_REGION,
     key: Optional[str] = None
 ) -> bool:
-    """
-    Main function to fetch population data and save to S3.
-    
-    Args:
-        bucket_name: Name of the S3 bucket
-        region: AWS region
-        key: Optional S3 object key. If None, uses timestamp-based name
-        
-    Returns:
-        True if successful, False otherwise
-    """
     logger.info(f"Starting population data fetch and save to bucket: {bucket_name}")
-    
-    # Fetch data from API (use DATAUSA_API_URL env var if set, e.g. by Terraform for Lambda)
     api_url = os.environ.get('DATAUSA_API_URL', DATAUSA_API_URL)
     data = fetch_population_data(api_url)
-    
     if data is None:
         logger.error("Failed to fetch population data")
         return False
-    
-    # Do not save when data array is empty; avoids S3 event that would trigger
-    # analytics Lambda on an empty file and cause KeyError in population queries
     if not data.get('data', []):
         logger.warning("API returned empty data array; skipping save to avoid triggering analytics on empty file")
         return False
-    
-    # Save to S3
     success = save_to_s3(bucket_name, data, key, region)
     
     if success:

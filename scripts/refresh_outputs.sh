@@ -1,8 +1,5 @@
 #!/bin/bash
-#
-# Script to refresh outputs.json from Terraform outputs
-# This captures all infrastructure outputs at the repo level for easy access
-#
+# Refresh config/outputs.json from Terraform outputs.
 
 set -e
 
@@ -15,25 +12,18 @@ OUTPUTS_FILE="$CONFIG_DIR/outputs.json"
 echo "Refreshing outputs.json from Terraform..."
 echo ""
 
-# Ensure config directory exists
 mkdir -p "$CONFIG_DIR"
-
-# Check if terraform directory exists
 if [ ! -d "$TERRAFORM_DIR" ]; then
     echo "Error: Terraform directory not found: $TERRAFORM_DIR"
     exit 1
 fi
 
-# Check if terraform is initialized (.terraform exists; state may be local or S3)
 if [ ! -d "$TERRAFORM_DIR/.terraform" ]; then
     echo "Error: Terraform not initialized. Run 'terraform init' first."
     exit 1
 fi
 
-# Change to terraform directory
 cd "$TERRAFORM_DIR"
-
-# Get terraform outputs and transform to outputs.json (default to dev when run locally)
 echo "Fetching Terraform outputs..."
 terraform output -json 2>/dev/null | python3 "$PROJECT_ROOT/scripts/terraform_outputs_to_json.py" --output "$OUTPUTS_FILE" -e dev
 

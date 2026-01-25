@@ -1,14 +1,10 @@
-"""
-Unit tests for Analytics queries.
-Tests all three analytical queries with various edge cases.
-"""
+"""Analytics query tests: population stats, best year, combined report."""
 import sys
 from pathlib import Path
 from typing import List, Dict, Any
 
 import pandas as pd
 
-# Add src to path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root / 'src'))
 
@@ -20,10 +16,7 @@ from rearc.analytics.queries import (
 
 
 class TestQuery1PopulationStats:
-    """Test Query 1: Population statistics."""
-    
     def test_query1_normal_case(self) -> None:
-        """Test normal case with valid data."""
         data: List[Dict[str, Any]] = [
             {'Year': 2013, 'Population': 316128839},
             {'Year': 2014, 'Population': 318857056},
@@ -42,22 +35,17 @@ class TestQuery1PopulationStats:
         assert result['std_dev'] >= 0
     
     def test_query1_filtered_years(self) -> None:
-        """Test that only years 2013-2018 are included."""
         data: List[Dict[str, Any]] = [
-            {'Year': 2012, 'Population': 313000000},  # Should be excluded
+            {'Year': 2012, 'Population': 313000000},
             {'Year': 2013, 'Population': 316128839},
             {'Year': 2018, 'Population': 327167439},
-            {'Year': 2019, 'Population': 328239523},  # Should be excluded
+            {'Year': 2019, 'Population': 328239523},
         ]
         df = pd.DataFrame(data)
-        
         result = query1_population_stats(df)
-        
-        # Should only use 2013-2018 data
         assert result['mean'] == (316128839 + 327167439) / 2
     
     def test_query1_no_data(self) -> None:
-        """Test with no data for years 2013-2018."""
         data: List[Dict[str, Any]] = [
             {'Year': 2010, 'Population': 309000000},
             {'Year': 2020, 'Population': 331000000},
@@ -70,34 +58,25 @@ class TestQuery1PopulationStats:
         assert result['std_dev'] == 0
 
     def test_query1_empty_dataframe(self) -> None:
-        """Test with empty DataFrame (e.g. API returned {"data": []}); avoids KeyError."""
         df = pd.DataFrame([])
         result = query1_population_stats(df)
         assert result == {'mean': 0, 'std_dev': 0}
 
     def test_query1_missing_columns(self) -> None:
-        """Test with DataFrame missing Year or Population; avoids KeyError."""
         df = pd.DataFrame([{'Other': 1}])
         result = query1_population_stats(df)
         assert result == {'mean': 0, 'std_dev': 0}
     
     def test_query1_single_year(self) -> None:
-        """Test with single year data."""
         data: List[Dict[str, Any]] = [{'Year': 2015, 'Population': 321418821}]
         df = pd.DataFrame(data)
-        
         result = query1_population_stats(df)
-        
         assert result['mean'] == 321418821
-        # Single value: std dev is NaN (pandas behavior) or 0, both are acceptable
         assert result['std_dev'] == 0 or pd.isna(result['std_dev'])
 
 
 class TestQuery2BestYearPerSeries:
-    """Test Query 2: Best year per series."""
-    
     def test_query2_normal_case(self) -> None:
-        """Test normal case with multiple series and years."""
         data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006011', 'PRS30006011', 'PRS30006011', 'PRS30006011',
                          'PRS30006012', 'PRS30006012', 'PRS30006012', 'PRS30006012'],
@@ -113,9 +92,6 @@ class TestQuery2BestYearPerSeries:
         assert 'series_id' in result.columns
         assert 'year' in result.columns
         assert 'value' in result.columns
-        
-        # PRS30006011: 1995 sum=3, 1996 sum=7 -> best year 1996
-        # PRS30006012: 2000 sum=8, 2001 sum=5 -> best year 2000
         prs1 = result[result['series_id'] == 'PRS30006011'].iloc[0]
         prs2 = result[result['series_id'] == 'PRS30006012'].iloc[0]
         assert prs1['year'] == 1996
@@ -131,15 +107,12 @@ class TestQuery2BestYearPerSeries:
             'value': [1, 2, 3, 4]
         }
         df = pd.DataFrame(data)
-        df.columns = [c.strip() for c in df.columns]  # Simulate column name trimming
-        
+        df.columns = [c.strip() for c in df.columns]
         result = query2_best_year_per_series(df)
-        
         assert len(result) == 1
-        assert result.iloc[0]['series_id'] == 'PRS30006011'  # Should be trimmed
-    
+        assert result.iloc[0]['series_id'] == 'PRS30006011'
+
     def test_query2_single_series(self) -> None:
-        """Test with single series."""
         data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006011', 'PRS30006011'],
             'year': [1995, 1996],
@@ -154,7 +127,6 @@ class TestQuery2BestYearPerSeries:
         assert result.iloc[0]['value'] == 10
     
     def test_query2_empty_dataframe(self) -> None:
-        """Test with empty dataframe."""
         df = pd.DataFrame(columns=['series_id', 'year', 'value'])
         
         result = query2_best_year_per_series(df)
@@ -163,10 +135,7 @@ class TestQuery2BestYearPerSeries:
 
 
 class TestQuery3CombinedReport:
-    """Test Query 3: Combined report."""
-    
     def test_query3_normal_case(self) -> None:
-        """Test normal case with matching data."""
         bls_data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006032', 'PRS30006032', 'PRS30006032'],
             'year': [2013, 2014, 2015],
@@ -190,15 +159,13 @@ class TestQuery3CombinedReport:
         assert 'value' in result.columns
         assert 'Population' in result.columns
         
-        # Check that population data is joined correctly
         assert result[result['year'] == 2013]['Population'].iloc[0] == 316128839
         assert result[result['year'] == 2014]['Population'].iloc[0] == 318857056
     
     def test_query3_no_matching_population(self) -> None:
-        """Test when population data doesn't have matching years."""
         bls_data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006032', 'PRS30006032'],
-            'year': [2010, 2011],  # Years not in population data
+            'year': [2010, 2011],
             'period': ['Q01', 'Q01'],
             'value': [0.5, -0.1]
         }
@@ -211,15 +178,12 @@ class TestQuery3CombinedReport:
         pop_df = pd.DataFrame(pop_data)
         
         result = query3_combined_report(bls_df, pop_df)
-        
         assert len(result) == 2
-        # Population should be NaN for non-matching years
         assert pd.isna(result['Population']).all()
     
     def test_query3_wrong_series_id(self) -> None:
-        """Test filtering for only PRS30006032."""
         bls_data: Dict[str, List[Any]] = {
-            'series_id': ['PRS30006032', 'PRS30006011', 'PRS30006032'],  # Mixed series
+            'series_id': ['PRS30006032', 'PRS30006011', 'PRS30006032'],
             'year': [2013, 2013, 2014],
             'period': ['Q01', 'Q01', 'Q01'],
             'value': [0.5, 1.0, -0.1]
@@ -233,17 +197,14 @@ class TestQuery3CombinedReport:
         pop_df = pd.DataFrame(pop_data)
         
         result = query3_combined_report(bls_df, pop_df)
-        
-        # Should only include PRS30006032 records
         assert len(result) == 2
         assert (result['series_id'] == 'PRS30006032').all()
-    
+
     def test_query3_wrong_period(self) -> None:
-        """Test filtering for only Q01 period."""
         bls_data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006032', 'PRS30006032', 'PRS30006032'],
             'year': [2013, 2013, 2014],
-            'period': ['Q01', 'Q02', 'Q01'],  # Mixed periods
+            'period': ['Q01', 'Q02', 'Q01'],
             'value': [0.5, 0.2, -0.1]
         }
         bls_df = pd.DataFrame(bls_data)
@@ -255,15 +216,12 @@ class TestQuery3CombinedReport:
         pop_df = pd.DataFrame(pop_data)
         
         result = query3_combined_report(bls_df, pop_df)
-        
-        # Should only include Q01 records
         assert len(result) == 2
         assert (result['period'] == 'Q01').all()
     
     def test_query3_no_data(self) -> None:
-        """Test with no matching data."""
         bls_data: Dict[str, List[Any]] = {
-            'series_id': ['PRS30006011'],  # Wrong series_id
+            'series_id': ['PRS30006011'],
             'year': [2013],
             'period': ['Q01'],
             'value': [0.5]
@@ -282,7 +240,6 @@ class TestQuery3CombinedReport:
         assert list(result.columns) == ['series_id', 'year', 'period', 'value', 'Population']
 
     def test_query3_empty_population_dataframe(self) -> None:
-        """Test with empty population DataFrame (e.g. API returned {"data": []}); returns BLS with null Population."""
         bls_data: Dict[str, List[Any]] = {
             'series_id': ['PRS30006032', 'PRS30006032'],
             'year': [2013, 2014],

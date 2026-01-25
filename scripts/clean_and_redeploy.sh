@@ -1,6 +1,5 @@
 #!/bin/bash
-# Complete clean deployment script
-# Destroys all AWS resources and redeploys from scratch
+# Clean deploy: destroy non-backend resources, reinstall deps, redeploy, test.
 
 set -e
 
@@ -34,12 +33,8 @@ echo ""
 echo "=== Step 1: Destroying All AWS Resources (excluding backend state bucket and DynamoDB lock table) ==="
 cd infrastructure/terraform
 
-# Ensure backend is initialized (needed for state list and destroy)
 terraform init -input=false
-
-# Destroy only non-backend resources so the subsequent plan/apply can acquire a state lock.
-# The backend (S3 state bucket and DynamoDB lock table in aws.backend.tf) must persist;
-# if they are destroyed, "terraform plan" fails because the lock table no longer exists.
+# Exclude backend (S3 state bucket + DynamoDB lock) so destroy doesn't break follow-up plan/apply.
 BACKEND_PATTERN='^random_id\.state_bucket_suffix$|^aws_s3_bucket\.terraform_state$|^aws_s3_bucket_versioning\.terraform_state$|^aws_s3_bucket_server_side_encryption_configuration\.terraform_state$|^aws_s3_bucket_public_access_block\.terraform_state$|^aws_s3_bucket_ownership_controls\.terraform_state$|^aws_s3_bucket_lifecycle_configuration\.terraform_state$|^aws_dynamodb_table\.terraform_state_lock$'
 
 state_list=$(terraform state list) || { echo "Error: terraform state list failed (is the backend reachable?)."; exit 1; }

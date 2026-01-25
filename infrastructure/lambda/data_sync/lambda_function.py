@@ -1,39 +1,22 @@
-"""
-Lambda function for Data Sync (BLS + Population)
-
-Combines BLS data sync and Population API fetch operations.
-"""
+"""Data Sync Lambda: BLS sync + population fetch."""
 
 import logging
 import os
 from typing import Any, Dict
 
-# Import from the rearc package
 from rearc.data_sync import sync_bls_data, fetch_and_save_population_data
 
-# Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Constants
 DEFAULT_REGION = 'us-east-1'
 DEFAULT_ARCHIVE_PREFIX = 'archive/'
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """
-    Lambda handler for data sync operations.
-    
-    Args:
-        event: EventBridge event (for scheduled trigger)
-        context: Lambda context
-        
-    Returns:
-        dict: Status of operations
-    """
     bucket_name = os.environ.get('S3_BUCKET_NAME')
     region = os.environ.get('AWS_REGION', DEFAULT_REGION)
-    archive_bucket = os.environ.get('S3_ARCHIVE_BUCKET')  # Optional: separate archive bucket
+    archive_bucket = os.environ.get('S3_ARCHIVE_BUCKET')
     archive_prefix = os.environ.get('S3_ARCHIVE_PREFIX', DEFAULT_ARCHIVE_PREFIX)
     
     if not bucket_name:
@@ -49,7 +32,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     }
     
     try:
-        # Sync BLS data (with archiving support)
         logger.info("Starting BLS data sync...")
         bls_success = sync_bls_data(bucket_name, region, archive_bucket, archive_prefix)
         results['bls_sync'] = bls_success
@@ -62,9 +44,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(f"Error in BLS data sync: {str(e)}", exc_info=True)
         results['bls_sync'] = False
         results['bls_sync_error'] = str(e)
-    
     try:
-        # Fetch population data
         logger.info("Starting population data fetch...")
         pop_success = fetch_and_save_population_data(bucket_name, region)
         results['population_fetch'] = pop_success
@@ -77,8 +57,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(f"Error in population data fetch: {str(e)}", exc_info=True)
         results['population_fetch'] = False
         results['population_fetch_error'] = str(e)
-    
-    # Return success if at least one operation succeeded
     status_code = 200 if (results['bls_sync'] or results['population_fetch']) else 500
     
     return {

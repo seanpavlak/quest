@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""
-Transform Terraform JSON output into a simplified outputs.json for the repo.
-
-Single source of truth for this logic. Used by:
-- .github/workflows/ci-cd.yml (deploy-dev, deploy-prod)
-- .github/workflows/sync-outputs.yml (sync-outputs-dev, sync-outputs-prod)
-- scripts/refresh_outputs.sh
-
-Reads Terraform output JSON from stdin or --input, writes to --output.
-"""
+"""Terraform output -> outputs.json. Used by CI, sync-outputs, refresh_outputs.sh."""
 
 import argparse
 import json
@@ -18,7 +9,6 @@ from typing import Optional
 
 
 def transform(raw: dict, *, environment: Optional[str] = None, region: str = "us-east-1") -> dict:
-    """Build simplified output from Terraform output dict."""
     values = {k: v["value"] for k, v in raw.items() if "value" in v}
     bucket_name = values.get("s3_bucket_name") or ""
 

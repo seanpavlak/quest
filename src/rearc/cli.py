@@ -1,6 +1,4 @@
-"""
-Command-line interface for the Rearc Data Quest pipeline.
-"""
+"""CLI for Rearc Data Quest pipeline."""
 
 import argparse
 import logging
@@ -16,24 +14,17 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    """Main CLI entry point."""
     parser = argparse.ArgumentParser(description='Rearc Data Quest Pipeline')
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
-    
-    # BLS sync command
     bls_parser = subparsers.add_parser('sync-bls', help='Sync BLS data to S3')
     bls_parser.add_argument('bucket', help='S3 bucket name')
     bls_parser.add_argument('--region', default='us-east-1', help='AWS region')
     bls_parser.add_argument('--archive-bucket', help='Archive bucket name (optional, defaults to same bucket with archive prefix)')
     bls_parser.add_argument('--archive-prefix', default='archive/', help='Archive prefix (default: archive/)')
-    
-    # Population fetch command
     pop_parser = subparsers.add_parser('fetch-population', help='Fetch population data and save to S3')
     pop_parser.add_argument('bucket', help='S3 bucket name')
     pop_parser.add_argument('--region', default='us-east-1', help='AWS region')
     pop_parser.add_argument('--key', help='S3 object key (optional)')
-    
-    # Sync all command
     all_parser = subparsers.add_parser('sync-all', help='Sync both BLS and population data')
     all_parser.add_argument('bucket', help='S3 bucket name')
     all_parser.add_argument('--region', default='us-east-1', help='AWS region')

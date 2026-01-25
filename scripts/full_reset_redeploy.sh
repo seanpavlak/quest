@@ -1,7 +1,5 @@
 #!/bin/bash
-# Full AWS reset: destroy ALL resources (including Terraform state backend),
-# then bootstrap with local state and redeploy. Proves the Terraform config
-# works from scratch. Use -y to run non-interactively.
+# Full reset: destroy all (incl. backend), apply with local state, migrate to new S3 backend. Use -y for non-interactive.
 
 set -e
 
@@ -31,10 +29,6 @@ if ! $AUTO_YES; then
   fi
 fi
 
-# ---------------------------------------------------------------------------
-# Step 1: Init and full destroy (including backend). May error at end when
-# the state bucket is destroyed; we continue and bootstrap.
-# ---------------------------------------------------------------------------
 echo ""
 echo "=== Step 1: Full destroy (all resources including backend) ==="
 cd "$TF_DIR"
@@ -43,12 +37,8 @@ terraform init -input=false
 echo "Destroying all resources..."
 terraform destroy -auto-approve || true
 
-# ---------------------------------------------------------------------------
-# Step 2: Switch to local backend so we can run apply (S3 backend is gone).
-# ---------------------------------------------------------------------------
 echo ""
 echo "=== Step 2: Switch to local backend ==="
-# Backup original backend.tf (for key/region; we'll recreate S3 block after apply)
 cp backend.tf backend.tf.bak 2>/dev/null || true
 
 cat > backend.tf << 'LOCALBACKEND'
@@ -62,9 +52,6 @@ LOCALBACKEND
 rm -rf .terraform
 terraform init -reconfigure -input=false
 
-# ---------------------------------------------------------------------------
-# Step 3: Clean and reinstall Lambda dependencies (same as clean_and_redeploy).
-# ---------------------------------------------------------------------------
 echo ""
 echo "=== Step 3: Clean and reinstall Lambda dependencies ==="
 cd "$REPO_ROOT/infrastructure/lambda/analytics"
@@ -86,24 +73,17 @@ echo "Installing Data Sync Lambda dependencies..."
 cd "$REPO_ROOT/infrastructure/lambda/data_sync"
 pip install -r requirements.txt -t . 2>&1 | tail -2
 
-# ---------------------------------------------------------------------------
-# Step 4: Apply everything (backend resources + app). State is local.
-# ---------------------------------------------------------------------------
 echo ""
 echo "=== Step 4: Fresh Terraform apply (local state) ==="
 cd "$TF_DIR"
 terraform apply -auto-approve
 
-# ---------------------------------------------------------------------------
-# Step 5: Point backend at the new S3 bucket and DynamoDB, migrate state.
-# ---------------------------------------------------------------------------
 echo ""
 echo "=== Step 5: Migrate state to new S3 backend ==="
 BUCKET=$(terraform output -raw terraform_state_bucket_name)
 TABLE=$(terraform output -raw terraform_state_lock_table_name)
 
 cat > backend.tf << S3BACKEND
-# Terraform Backend Configuration (recreated after full reset)
 terraform {
   backend "s3" {
     bucket         = "${BUCKET}"
@@ -122,9 +102,6 @@ echo ""
 echo "Resources (state now in S3):"
 terraform output
 
-# ---------------------------------------------------------------------------
-# Step 6: Smoke tests (Data Sync and Analytics Lambdas).
-# ---------------------------------------------------------------------------
 echo ""
 echo "=== Step 6: Smoke tests ==="
 echo "Invoking Data Sync Lambda..."
@@ -141,7 +118,6 @@ BUCKET_DATA=$(terraform output -raw s3_bucket_name)
 echo "S3 contents:"
 aws s3 ls "s3://$BUCKET_DATA/" 2>/dev/null || echo "(empty or error)"
 
-# Trigger Analytics from any population_data_*.json if present
 POP=$(aws s3 ls "s3://$BUCKET_DATA/" 2>/dev/null | grep "population_data_.*\.json" | head -1 | awk '{print $4}')
 if [ -n "$POP" ]; then
   echo ""

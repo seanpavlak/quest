@@ -1,8 +1,4 @@
-"""
-Analytics Queries Module
-
-Contains the three analytical queries for the data pipeline.
-"""
+"""Analytics queries: population stats, best year per series, combined report."""
 
 import logging
 from typing import Dict, Any
@@ -13,24 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 def query1_population_stats(population_df: pd.DataFrame) -> Dict[str, float]:
-    """
-    Query 1: Calculate mean and standard deviation of US population (2013-2018).
-    
-    Args:
-        population_df: DataFrame containing population data with 'Year' and 'Population' columns
-        
-    Returns:
-        Dictionary with 'mean' and 'std_dev' keys containing float values
-    """
     logger.info("Query 1: Population Statistics (2013-2018)")
-    
-    # Guard: empty DataFrame or missing columns (e.g. API returned {"data": []})
     if population_df.empty or 'Year' not in population_df.columns or 'Population' not in population_df.columns:
         logger.warning("Population data is empty or missing required columns (Year, Population)")
         return {'mean': 0, 'std_dev': 0}
-    
-    # Filter for years 2013-2018 (inclusive)
-    # Population data has 'Year' column (capital Y)
     filtered_df = population_df[
         (population_df['Year'] >= 2013) & (population_df['Year'] <= 2018)
     ]
@@ -38,8 +20,6 @@ def query1_population_stats(population_df: pd.DataFrame) -> Dict[str, float]:
     if len(filtered_df) == 0:
         logger.warning("No population data found for years 2013-2018")
         return {'mean': 0, 'std_dev': 0}
-    
-    # Calculate mean and standard deviation
     mean_pop = filtered_df['Population'].mean()
     std_dev_pop = filtered_df['Population'].std()
     
@@ -53,37 +33,16 @@ def query1_population_stats(population_df: pd.DataFrame) -> Dict[str, float]:
 
 
 def query2_best_year_per_series(bls_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Query 2: Find best year per series_id (year with max sum of values).
-    
-    Args:
-        bls_df: DataFrame containing BLS time-series data with 'series_id', 'year', and 'value' columns
-        
-    Returns:
-        DataFrame with columns: series_id, year, value (sum of values for best year)
-    """
     logger.info("Query 2: Best Year per Series ID")
-    
-    # Clean column names (remove extra spaces)
     bls_df = bls_df.copy()
     bls_df.columns = bls_df.columns.str.strip()
-    
-    # Trim string values in series_id column
     bls_df['series_id'] = bls_df['series_id'].str.strip()
-    
-    # Ensure value column is numeric
     bls_df['value'] = pd.to_numeric(bls_df['value'], errors='coerce')
-    
-    # Group by series_id and year, sum values for all quarters in that year
     yearly_sums = bls_df.groupby(['series_id', 'year'])['value'].sum().reset_index()
     yearly_sums.columns = ['series_id', 'year', 'sum_value']
-    
-    # Find the year with maximum sum for each series_id
     best_years = yearly_sums.loc[
         yearly_sums.groupby('series_id')['sum_value'].idxmax()
     ].copy()
-    
-    # Rename sum_value to value for output
     best_years = best_years[['series_id', 'year', 'sum_value']]
     best_years.columns = ['series_id', 'year', 'value']
     
@@ -96,30 +55,12 @@ def query3_combined_report(
     bls_df: pd.DataFrame,
     population_df: pd.DataFrame
 ) -> pd.DataFrame:
-    """
-    Query 3: Combined report for PRS30006032 Q01 with population data.
-    
-    Args:
-        bls_df: DataFrame containing BLS time-series data with 'series_id', 'year', 'period', 'value' columns
-        population_df: DataFrame containing population data with 'Year' and 'Population' columns
-        
-    Returns:
-        DataFrame with columns: series_id, year, period, value, Population
-    """
     logger.info("Query 3: Combined Report")
-    
-    # Clean BLS column names (remove extra spaces)
     bls_df = bls_df.copy()
     bls_df.columns = bls_df.columns.str.strip()
-    
-    # Trim string values in series_id and period columns
     bls_df['series_id'] = bls_df['series_id'].str.strip()
     bls_df['period'] = bls_df['period'].str.strip()
-    
-    # Ensure value column is numeric
     bls_df['value'] = pd.to_numeric(bls_df['value'], errors='coerce')
-    
-    # Filter for series_id = PRS30006032 and period = Q01
     filtered_bls = bls_df[
         (bls_df['series_id'] == 'PRS30006032') & 
         (bls_df['period'] == 'Q01')
@@ -128,26 +69,14 @@ def query3_combined_report(
     if len(filtered_bls) == 0:
         logger.warning("No data found for PRS30006032 Q01")
         return pd.DataFrame(columns=['series_id', 'year', 'period', 'value', 'Population'])
-    
-    # Guard: empty population or missing columns (e.g. API returned {"data": []})
     if population_df.empty or 'Year' not in population_df.columns or 'Population' not in population_df.columns:
         logger.warning("Population data is empty or missing Year/Population; returning BLS data with null Population")
         filtered_bls = filtered_bls.copy()
         filtered_bls['Population'] = pd.NA
         return filtered_bls[['series_id', 'year', 'period', 'value', 'Population']]
-    
-    # Prepare population data for join (rename Year to year for consistency)
     pop_for_join = population_df[['Year', 'Population']].copy()
     pop_for_join.columns = ['year', 'Population']
-    
-    # Join BLS data with population data on year
-    result = filtered_bls.merge(
-        pop_for_join,
-        on='year',
-        how='left'  # Left join to keep all BLS records even if population data missing
-    )
-    
-    # Select and order columns
+    result = filtered_bls.merge(pop_for_join, on='year', how='left')
     result = result[['series_id', 'year', 'period', 'value', 'Population']]
     
     logger.info(f"Found {len(result)} records for PRS30006032 Q01")

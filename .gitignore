@@ -1,4 +1,3 @@
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -14,15 +13,12 @@ pip-delete-this-directory.txt
 dist/
 build/
 
-# Jupyter Notebook
 .ipynb_checkpoints
 
-# Terraform
 .terraform/
 *.tfstate
 *.tfstate.*
-# Note: .terraform.lock.hcl should be COMMITTED to ensure consistent provider versions
-# .terraform.lock.hcl
+# .terraform.lock.hcl: commit it (lock provider versions)
 *.tfplan
 tfplan
 plan.txt
@@ -34,20 +30,12 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 outputs_raw.json
-# config/outputs.json - Track this file to keep it in sync with infrastructure
 
-# Lambda deployment packages
 *.zip
 infrastructure/terraform/*.zip
 
-# Lambda layers (build artifacts)
 infrastructure/lambda/layers/
 
-# Lambda dependencies (installed packages)
-# These are installed via `pip install -r requirements.txt -t .` during build
-# We only want to track the source files (lambda_function.py, requirements.txt), not the installed dependencies
-
-# Ignore all Python packages and dependencies installed in lambda directories
 infrastructure/lambda/**/__pycache__/
 infrastructure/lambda/**/*.dist-info/
 infrastructure/lambda/**/*.egg-info/
@@ -74,31 +62,24 @@ infrastructure/lambda/**/tzdata/
 infrastructure/lambda/**/six.py
 infrastructure/lambda/**/tzlocal/
 
-# AWS
 .aws/
 
-# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
 .DS_Store
 Thumbs.db
 
-# Logs
 *.log
 
-# Environment variables
 .env
 .env.local
 
-# Testing
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Local test data
 data/local/
