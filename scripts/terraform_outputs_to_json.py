@@ -9,6 +9,7 @@ from typing import Optional
 
 
 def transform(raw: dict, *, environment: Optional[str] = None, region: str = "us-east-1") -> dict:
+    """Convert tf output dict to outputs.json shape (bucket, lambdas, SQS, etc.)."""
     values = {k: v["value"] for k, v in raw.items() if "value" in v}
     bucket_name = values.get("s3_bucket_name") or ""
 
@@ -45,6 +46,7 @@ def transform(raw: dict, *, environment: Optional[str] = None, region: str = "us
 
 
 def main() -> int:
+    """Read Terraform JSON (file or stdin), run transform, write outputs.json. Returns 0/1."""
     parser = argparse.ArgumentParser(description="Transform Terraform JSON output into outputs.json")
     parser.add_argument("--input", "-i", help="Input JSON file (default: read from stdin)")
     parser.add_argument("--output", "-o", required=True, help="Output JSON file")
