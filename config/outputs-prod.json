@@ -1,0 +1,19 @@
+{
+  "s3_bucket_name": "",
+  "s3_bucket_arn": null,
+  "s3_bucket_url": "",
+  "s3_bucket_region": "us-east-1",
+  "data_sync_lambda_function_name": null,
+  "data_sync_lambda_arn": null,
+  "analytics_lambda_function_name": null,
+  "analytics_lambda_arn": null,
+  "sqs_queue_url": null,
+  "sqs_queue_arn": null,
+  "cloudwatch_log_group_data_sync": null,
+  "cloudwatch_log_group_analytics": null,
+  "terraform_state_bucket_name": null,
+  "terraform_state_bucket_arn": null,
+  "terraform_state_lock_table_name": null,
+  "terraform_state_lock_table_arn": null,
+  "environment": "prod"
+}
